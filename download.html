@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Download – ScreenTime</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .page {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+    .layer { position: absolute; inset: 0; }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .overlay .btn,
+    .overlay .back { pointer-events: auto; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 34px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #000;
+      background: #fff;
+      border: 2px solid #fff;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .btn:hover { transform: scale(1.04); background: #e8e8e8; }
+    .btn:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+    .btn.disabled {
+      background: transparent;
+      color: #ffffffb0;
+      border-color: #ffffff55;
+      cursor: not-allowed;
+    }
+    .btn.disabled:hover { transform: none; background: transparent; }
+    .back {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      font-size: 16px;
+      color: #ffffffcc;
+    }
+    .back:hover { color: #fff; }
+    .download-row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 6vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 28px;
+      padding: 0 20px;
+    }
+    .download-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .soon {
+      font-size: 14px;
+      color: #ffffffb0;
+    }
+    @media (max-width: 560px) {
+      .download-row { flex-direction: column; align-items: center; gap: 18px; }
+      .download-item { flex-direction: column-reverse; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="layer" id="cascade-root"></div>
+
+    <div class="overlay">
+      <a href="index.html" class="back">Back</a>
+
+      <!-- Bottom row: Windows on the left, Android on the right -->
+      <div class="download-row">
+        <div class="download-item">
+          <span class="btn disabled" aria-disabled="true">
+            Download for Windows
+          </span>
+          <span class="soon">Coming soon</span>
+        </div>
+
+        <div class="download-item">
+          <a
+            href="https://github.com/straitem/App-Blocker/releases/latest/download/App_Blocker.apk"
+            class="btn"
+          >
+            Download for Android
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const ADVANCED_DEFAULTS = {
+        fallSpeed: 9, fallSpread: 63, drift: 3, topWidth: 89, coreDensity: 76,
+        topBoost: 266, topDepth: 57, stray: 9, flakeSize: 4, sizeVariance: 60,
+        flakeBright: 120, shimmer: 30, warmShare: 6, glintLife: 450, glintRise: 150,
+        glintArm: 34, glintCore: 3, glintHalo: 12, glintBright: 100, glintWarm: 7,
+        haze: 85, hazeWidth: 86, hazeDepth: 22, hazeLow: "#3A2A6A",
+        flakeLav: "#AE89B5", flakePink: "#E070D0", flakeBlue: "#A0B0FF",
+        flakeWarm: "#E8A080", glintPink: "#FF7AD0", glintBlue: "#8A8AFF",
+        pushRadius: 12, seed: 1, hover: 66, grain: 0, vignette: 0,
+      };
+
+      const REF_ASPECT = 1200 / 800;
+      const MAX_DPR = 2;
+      const MAX_PIXELS = 4.2e6;
+      const LADDER = [1, 0.85, 0.72, 0.6];
+      const HASH_ROWS = 4096;
+      const FLAKE_ROW = 0.03;
+      const GLINT_ROW = 0.11;
+      const TIME_WRAP = 20 * Math.PI * 16;
+
+      function num(v, d) {
+        return typeof v === "number" && Number.isFinite(v) ? v : d;
+      }
+      function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v));
+      }
+      function parseHexRGB(hex, fallback) {
+        if (typeof hex !== "string") return fallback;
+        const s = hex.trim();
+        if (s[0] !== "#") return fallback;
+        const h = s.slice(1);
+        let r, g, b;
+        if (h.length === 3 || h.length === 4) {
+          r = parseInt(h[0] + h[0], 16);
+          g = parseInt(h[1] + h[1], 16);
+          b = parseInt(h[2] + h[2], 16);
+        } else if (h.length >= 6) {
+          r = parseInt(h.slice(0, 2), 16);
+          g = parseInt(h.slice(2, 4), 16);
+          b = parseInt(h.slice(4, 6), 16);
+        } else return fallback;
+        if (![r, g, b].every(Number.isFinite)) return fallback;
+        return [r / 255, g / 255, b / 255];
+      }
+      function dirFrame(dir, aspect) {
+        const h = aspect / 2;
+        switch (dir) {
+          case "up": return { m: [1, 0, 0, -1], o: [0, 1] };
+          case "right": return { m: [0, 1, 1, 0], o: [-0.5, h] };
+          case "left": return { m: [0, 1, -1, 0], o: [-0.5, h] };
+          default: return { m: [1, 0, 0, 1], o: [0, 0] };
+        }
+      }
+
+      const GLSL_COMMON = `#version 300 es
+      precision highp float;
+      precision highp int;
+      uniform vec2 uRes;
+      uniform float uTime;
+      uniform vec2 uMouse;
+      uniform float uHover;
+      uniform vec3 uBg;
+      uniform vec3 uBase;
+      uniform vec3 uAccent;
+      uniform float uScale;
+      uniform float uDensity, uWTop, uWBot, uGlintRate, uHoverAmt;
+      uniform float uFall, uFallSpread, uDrift, uCoreDen, uTopBoost, uTopDepth, uStray;
+      uniform float uFlakeR, uSizeVar, uFlakeBright, uShimmer, uWarmShare;
+      uniform float uGlintLife, uGlintRise, uGlintArm, uGlintCore, uGlintHalo, uGlintBright, uGlintWarm;
+      uniform float uHaze, uHazeW, uHazeDepth;
+      uniform vec3 uHazeLow, uLav, uPink, uBlue, uWarm, uGPink, uGBlue;
+      uniform float uPushR, uPush, uSeed, uGrain, uVignette;
+      uniform vec4 uScroll;
+      uniform float uGScroll, uGPhase;
+      uniform vec4 uDir;
+      uniform vec2 uDirO;
+
+      const int OFS = 1048576;
+
+      uvec3 pcg3(uvec3 v) {
+          v = v * 1664525u + 1013904223u;
+          v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
+          v ^= v >> 16u;
+          v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
+          return v;
+      }
+      vec3 rnd3(ivec3 c) { return vec3(pcg3(uvec3(c))) * (1.0 / 4294967295.0); }
+      float wAt(float y) { return max(mix(uWTop, uWBot, clamp(y, 0.0, 3.0)), 1e-3); }
+      int wrapRow(int y) { return ((y + 2048) & 4095) - 2048; }
+      float sceneScale() { return max(uScale, 0.05); }
+      vec2 dirFwd(vec2 f) { return vec2(uDir.x * f.x + uDir.y * f.y, uDir.z * f.x + uDir.w * f.y) + uDirO; }
+      vec2 dirInv(vec2 q) { q -= uDirO; return vec2(uDir.x * q.x + uDir.z * q.y, uDir.y * q.x + uDir.w * q.y); }
+      vec2 toScene(vec2 fc) {
+          float Hp = max(uRes.y, 1.0);
+          return dirFwd(vec2((fc.x - 0.5 * uRes.x) / Hp, (uRes.y - fc.y) / Hp)) / sceneScale();
+      }
+      vec2 toFrag(vec2 p) {
+          float Hp = max(uRes.y, 1.0);
+          vec2 f = dirInv(p * sceneScale()) * Hp;
+          return vec2(f.x + 0.5 * uRes.x, uRes.y - f.y);
+      }
+      float pxSize() { return 1.0 / (max(uRes.y, 1.0) * sceneScale()); }
+      vec2 mouseScene() {
+          float Hp = max(uRes.y, 1.0);
+          return dirFwd(vec2((uMouse.x - 0.5) * uRes.x / Hp, 1.0 - uMouse.y)) / sceneScale();
+      }
+      float vignette(vec2 fc) {
+          if (uVignette <= 0.0) return 1.0;
+          float Hp = max(uRes.y, 1.0);
+          vec2 vc = (fc / uRes - 0.5) * vec2(uRes.x / Hp, 1.0);
+          return 1.0 - uVignette * smoothstep(0.35, 1.0, length(vc) * 1.1);
+      }
+      void pushed(vec2 X, out vec2 P, out float J, out float K, out float near) {
+          float hv = uHover * uHoverAmt;
+          P = X; J = 1.0; K = 0.0; near = 0.0;
+          if (hv <= 0.0) return;
+          vec2 d = X - mouseScene();
+          near = hv * exp(-dot(d, d) / max(uPushR * uPushR, 1e-5));
+      }
+      vec4 corner(vec2 P, float hx, float hy, int k) {
+          vec2 c = vec2((k == 1 || k == 4 || k == 5) ? 1.0 : -1.0, (k == 2 || k == 3 || k == 5) ? 1.0 : -1.0);
+          vec2 fc = toFrag(P + c * vec2(hx, hy));
+          return vec4(fc / max(uRes, vec2(1.0)) * 2.0 - 1.0, 0.0, 1.0);
+      }`;
+
+      const VERT_FULL = `#version 300 es
+      void main() {
+          vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+          gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+      }`;
+
+      const FRAG_BASE = GLSL_COMMON + `
+      out vec4 outColor;
+      vec3 haze(vec2 p, float t) {
+          float y = max(p.y, 0.0);
+          float sig = uHazeW * (1.0 - 0.25 * clamp(y, 0.0, 1.0));
+          float ix = exp(-p.x * p.x / max(2.0 * sig * sig, 1e-6));
+          float iy = exp(-y / max(uHazeDepth, 1e-3));
+          float trail = exp(-y / max(uHazeDepth * 2.2, 1e-3)) * 0.18;
+          vec3 c = mix(uBase, uHazeLow, smoothstep(0.05, 0.5, y));
+          float breathe = 1.0 + 0.07 * sin(t * 0.9) + 0.03 * sin(t * 2.3 + 1.0);
+          vec3 col = c * ix * (iy + trail) * breathe;
+          float sc = sig * 0.6;
+          col += mix(uLav, uAccent, 0.3) * exp(-p.x * p.x / max(2.0 * sc * sc, 1e-6)) * exp(-y / 0.035) * 0.35;
+          return col * uHaze;
+      }
+      void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 p = toScene(fc);
+          vec2 dm = p - mouseScene();
+          float near = uHover * uHoverAmt * exp(-dot(dm, dm) / max(uPushR * uPushR, 1e-5));
+          vec3 col = uBg + haze(p, uTime) + uAccent * near * 0.04;
+          outColor = vec4(clamp(col * vignette(fc), 0.0, 1.0), 1.0);
+      }`;
+
+      const VERT_FLAKE = GLSL_COMMON + `
+      layout(location = 0) in ivec4 aRow;
+      flat out vec4 vPush;
+      flat out vec4 vShape;
+      flat out vec2 vWarp;
+      flat out vec3 vCol;
+      void main() {
+          int col = gl_VertexID / 6;
+          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+          if (col >= aRow.w) return;
+          const float cu = 0.16;
+          const float cy = 0.03;
+          int sd = int(uSeed) * 131;
+          int L = aRow.x;
+          ivec2 c = ivec2(aRow.z + col, aRow.y);
+          float fl = float(L);
+          float v = max(uFall * (1.0 + (fl - 1.5) / 1.5 * uFallSpread), 1e-3);
+          float sz = 0.75 + 0.2 * fl;
+          float lb = 0.6 + 0.14 * fl;
+          vec2 sh = vec2(fl * 0.37, fl * 0.61);
+          int wy = wrapRow(c.y);
+          vec3 r = rnd3(ivec3(c.x + OFS, wy + OFS, L * 7919 + sd));
+          float u0 = (float(c.x) + 0.15 + 0.7 * r.x - sh.x) * cu;
+          float yy0 = (float(c.y) + 0.15 + 0.7 * r.y - sh.y) * cy;
+          float y0 = yy0 + uScroll[L];
+          float top = 1.0 - smoothstep(0.0, uTopDepth, y0);
+          float ex = uCoreDen * exp(-1.2 * u0 * u0) * (1.0 + uTopBoost * top)
+                   + uStray * exp(-max(abs(u0) - 1.5, 0.0));
+          ex *= uDensity;
+          if (r.z > ex) return;
+          float x0 = u0 * wAt(y0) - uDrift * y0 / v;
+          float px = pxSize();
+          vec3 r2 = rnd3(ivec3(wy + OFS, c.x + OFS, L * 7919 + 4099 + sd));
+          float rad = uFlakeR * sz * mix(1.0 - uSizeVar * 0.4, 1.0 + uSizeVar, r2.x * r2.x) * (1.0 + 0.4 * top);
+          float rr = max(rad, 0.6 * px);
+          float reach = rr * 1.8 + 2.0 * px;
+          float an = r2.y * 6.2832;
+          vec3 r3 = rnd3(ivec3(c.x + OFS, wy + OFS, L * 7919 + 8191 + sd));
+          float k = r3.x;
+          vec3 colr;
+          if (k < 0.38) colr = uAccent;
+          else if (k < 0.58) colr = uLav;
+          else if (k < 0.70) colr = uPink;
+          else if (k < 0.80) colr = mix(uBase, uLav, 0.5);
+          else if (k < 0.90) colr = uBlue;
+          else if (k < 1.0 - uWarmShare) colr = uBase * 1.4;
+          else colr = uWarm;
+          float bright = mix(0.3, 1.0, r3.y) * lb * uFlakeBright;
+          float sm = (1.0 + uShimmer * sin(uTime * (10.0 + 20.0 * r3.z) + r3.x * 40.0)) / (1.0 + uShimmer);
+          vec2 P; float J; float K; float near;
+          pushed(vec2(x0, y0), P, J, K, near);
+          float tw = 0.5 + 0.5 * sin(uTime * (14.0 + 26.0 * r3.z) + r3.y * 50.0);
+          float blink = tw * tw * tw * tw;
+          vCol = colr * bright * sm * mix(1.0, 0.3 + 3.4 * blink, clamp(near, 0.0, 1.0));
+          vPush = vec4(P, J, K);
+          vShape = vec4(rr, reach, cos(an), sin(an));
+          vWarp = vec2(1.0 + 0.6 * r2.z, r.x * 20.0);
+          float lit = min(reach, (rr + px) / 0.82) + px;
+          gl_Position = corner(P, lit * (1.0 + abs(K)) / max(J, 0.3), lit, gl_VertexID - col * 6);
+      }`;
+
+      const FRAG_FLAKE = GLSL_COMMON + `
+      flat in vec4 vPush;
+      flat in vec4 vShape;
+      flat in vec2 vWarp;
+      flat in vec3 vCol;
+      out vec4 outColor;
+      void main() {
+          vec2 fc = gl_FragCoord.xy;
+          float px = pxSize();
+          vec2 dp = toScene(fc) - vPush.xy;
+          vec2 d = vec2(dp.x * vPush.z + dp.y * vPush.w, dp.y);
+          float rr = vShape.x;
+          float reach = vShape.y;
+          if (dot(d, d) > reach * reach) discard;
+          vec2 e = mat2(vShape.z, vShape.w, -vShape.w, vShape.z) * d;
+          e.y *= vWarp.x;
+          float ang = atan(e.y, e.x);
+          float dd = length(e) * (1.0 + 0.18 * sin(3.0 * ang + vWarp.y));
+          float a = 1.0 - smoothstep(rr - 0.5 * px, rr + px, dd);
+          if (a <= 0.0) discard;
+          outColor = vec4(vCol * a * vignette(fc), 0.0);
+      }`;
+
+      const VERT_GLINT = GLSL_COMMON + `
+      layout(location = 0) in ivec4 aRow;
+      flat out vec4 vPush;
+      flat out vec4 vShape;
+      flat out vec3 vTint;
+      void main() {
+          int col = gl_VertexID / 6;
+          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+          if (col >= aRow.w || uGlintRate <= 0.0) return;
+          const float cu = 0.55;
+          const float cy = 0.11;
+          int sd = int(uSeed) * 131;
+          float v = max(uFall, 1e-3);
+          float P = 35.0 / max(uGlintRate, 0.5);
+          ivec2 c = ivec2(aRow.z + col, aRow.y);
+          int wy = wrapRow(c.y);
+          vec3 r = rnd3(ivec3(c.x + OFS, wy + OFS, 991 + sd));
+          float ph = uGPhase + r.y;
+          float k = floor(ph);
+          int kk = int(k) & 4095;
+          float lt = fract(ph) * P;
+          vec3 q = rnd3(ivec3(c.x + OFS, wy + OFS, kk * 3 + 77777 + sd));
+          float life = uGlintLife * mix(0.67, 1.33, q.z);
+          if (lt > life) return;
+          float u0 = (float(c.x) + 0.1 + 0.8 * q.x) * cu;
+          float yy0 = (float(c.y) + 0.1 + 0.8 * q.y) * cy;
+          float y0 = yy0 + uGScroll;
+          float x0 = u0 * wAt(y0) - uDrift * y0 / v;
+          float act = exp(-0.45 * u0 * u0) * mix(0.5, 1.0, smoothstep(0.3, 1.0, abs(u0)));
+          if (r.x > act) return;
+          float px = pxSize();
+          vec3 q2 = rnd3(ivec3(wy + OFS, c.x + OFS, kk * 3 + 33331 + sd));
+          float rise = min(uGlintRise, life * 0.6);
+          float env = lt < rise ? smoothstep(0.0, 1.0, lt / rise)
+                                : pow(max(0.0, 1.0 - (lt - rise) / max(life - rise, 1e-3)), 2.0);
+          float Lr = uGlintArm * 0.5 * (0.8 + 0.2 * env) * mix(0.75, 1.2, q2.x);
+          float bound = max(Lr, uGlintHalo * 3.0) + 2.0 * px;
+          vec3 tint;
+          if (q2.y < uGlintWarm) tint = mix(uWarm, vec3(1.0, 0.45, 0.25), 0.5);
+          else if (q2.y < 0.4) tint = uGBlue;
+          else if (q2.y < 0.7) tint = uGPink;
+          else tint = mix(uAccent, vec3(0.78, 0.72, 1.0), 0.5);
+          vec2 Pp; float J; float K; float near;
+          pushed(vec2(x0, y0), Pp, J, K, near);
+          float gb = 0.5 + 0.5 * sin(uTime * 40.0 + q2.x * 30.0);
+          float bright = mix(0.65, 1.0, q2.z) * uGlintBright * env * mix(1.0, 0.35 + 1.6 * gb * gb, clamp(near, 0.0, 1.0));
+          vPush = vec4(Pp, J, K);
+          vShape = vec4(Lr, bound, bright, 1.0);
+          vTint = tint;
+          gl_Position = corner(Pp, bound * (1.0 + abs(K)) / max(J, 0.3) + px, bound + px, gl_VertexID - col * 6);
+      }`;
+
+      const FRAG_GLINT = GLSL_COMMON + `
+      flat in vec4 vPush;
+      flat in vec4 vShape;
+      flat in vec3 vTint;
+      out vec4 outColor;
+      void main() {
+          vec2 fc = gl_FragCoord.xy;
+          float px = pxSize();
+          vec2 dp = toScene(fc) - vPush.xy;
+          vec2 d = vec2(dp.x * vPush.z + dp.y * vPush.w, dp.y);
+          float Lr = vShape.x;
+          if (max(abs(d.x), abs(d.y)) > vShape.y) discard;
+          float th = 0.7 * px + 0.0006;
+          float armH = pow(max(0.0, 1.0 - abs(d.x) / max(Lr, 1e-4)), 2.0) * exp(-(d.y * d.y) / (th * th));
+          float armV = pow(max(0.0, 1.0 - abs(d.y) / max(Lr, 1e-4)), 2.0) * exp(-(d.x * d.x) / (th * th));
+          float r2 = dot(d, d);
+          float core = exp(-r2 / max(uGlintCore * uGlintCore, 1e-8));
+          float halo = exp(-r2 / max(uGlintHalo * uGlintHalo, 1e-8));
+          vec3 tint = vTint;
+          vec3 acc = vShape.z * (vec3(1.0) * core * 1.2 + mix(vec3(1.0), tint, 0.5) * (armH + armV) * 0.9 + tint * halo * 0.45 * vShape.w);
+          outColor = vec4(acc * vignette(fc), 0.0);
+      }`;
+
+      const FRAG_GRAIN = GLSL_COMMON + `
+      uniform float uSign;
+      out vec4 outColor;
+      void main() {
+          vec2 fc = gl_FragCoord.xy;
+          float gn = float(pcg3(uvec3(uvec2(fc), uint(uTime * 60.0))).x) / 4294967295.0 - 0.5;
+          outColor = vec4(vec3(max(gn * uSign, 0.0) * uGrain * 0.22), 0.0);
+      }`;
+
+      function buildGL(gl) {
+        const sh = (type, src) => {
+          const s = gl.createShader(type);
+          if (!s) return null;
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) return null;
+          return s;
+        };
+        const link = (vsSrc, fsSrc) => {
+          const vs = sh(gl.VERTEX_SHADER, vsSrc);
+          const fs = sh(gl.FRAGMENT_SHADER, fsSrc);
+          const prog = gl.createProgram();
+          if (!vs || !fs || !prog) return null;
+          gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+          gl.deleteShader(vs); gl.deleteShader(fs);
+          if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+          const cache = new Map();
+          const u = (name) => {
+            if (!cache.has(name)) cache.set(name, gl.getUniformLocation(prog, name));
+            return cache.get(name) ?? null;
+          };
+          return {
+            prog, u,
+            loc: {
+              res: u("uRes"), time: u("uTime"), scroll: u("uScroll"), gScroll: u("uGScroll"), gPhase: u("uGPhase"),
+              mouse: u("uMouse"), hover: u("uHover"), scale: u("uScale"), bg: u("uBg"), base: u("uBase"),
+              accent: u("uAccent"), sign: u("uSign"),
+            },
+          };
+        };
+        const rows = () => {
+          const vao = gl.createVertexArray();
+          const buf = gl.createBuffer();
+          if (!vao || !buf) return null;
+          gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+          gl.bufferData(gl.ARRAY_BUFFER, 4096, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribIPointer(0, 4, gl.INT, 0, 0);
+          gl.vertexAttribDivisor(0, 1);
+          gl.bindVertexArray(null);
+          return { vao, buf, cap: 4096, data: new Int32Array(1024), n: 0, max: 0 };
+        };
+        const base = link(VERT_FULL, FRAG_BASE);
+        const flake = link(VERT_FLAKE, FRAG_FLAKE);
+        const glint = link(VERT_GLINT, FRAG_GLINT);
+        const grain = link(VERT_FULL, FRAG_GRAIN);
+        const empty = gl.createVertexArray();
+        const flakes = rows();
+        const glints = rows();
+        if (!base || !flake || !glint || !grain || !empty || !flakes || !glints) return null;
+        return { gl, base, flake, glint, grain, empty, flakes, glints };
+      }
+
+      function fillRows(R, L, S, cy, cu, shx, shy, f0, f1, reach, D, x0, x1, y0, y1, wTop, wBot, uCap) {
+        const wAt = (y) => Math.max(wTop + (wBot - wTop) * Math.min(3, Math.max(0, y)), 1e-3);
+        const rowLo = Math.ceil((y0 - reach - S) / cy + shy - f1) - 1;
+        const rowHi = Math.floor((y1 + reach - S) / cy + shy - f0) + 1;
+        for (let row = rowLo; row <= rowHi; row++) {
+          const ya = (row + f0 - shy) * cy + S;
+          const yb = (row + f1 - shy) * cy + S;
+          let lo = Infinity, hi = -Infinity;
+          for (let k = 0; k < 4; k++) {
+            const y = k === 0 ? ya : k === 1 ? yb : k === 2 ? 0 : 3;
+            if (k >= 2 && !(y > ya && y < yb)) continue;
+            const w = wAt(y);
+            lo = Math.min(lo, (x0 - reach + D * y) / w);
+            hi = Math.max(hi, (x1 + reach + D * y) / w);
+          }
+          lo = Math.max(lo, -uCap); hi = Math.min(hi, uCap);
+          if (lo > hi) continue;
+          const c0 = Math.ceil(lo / cu + shx - f1) - 1;
+          const c1 = Math.floor(hi / cu + shx - f0) + 1;
+          const count = c1 - c0 + 1;
+          if (count <= 0) continue;
+          if ((R.n + 1) * 4 > R.data.length) {
+            const grown = new Int32Array(R.data.length * 2);
+            grown.set(R.data);
+            R.data = grown;
+          }
+          const o = R.n * 4;
+          R.data[o] = L; R.data[o + 1] = row; R.data[o + 2] = c0; R.data[o + 3] = count;
+          R.n++;
+          if (count > R.max) R.max = count;
+        }
+      }
+
+      function uploadRows(gl, R) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
+        const bytes = R.n * 16;
+        if (bytes > R.cap) {
+          R.cap = R.data.byteLength;
+          gl.bufferData(gl.ARRAY_BUFFER, R.data, gl.DYNAMIC_DRAW);
+        } else if (bytes > 0) gl.bufferSubData(gl.ARRAY_BUFFER, 0, R.data, 0, R.n * 4);
+      }
+
+      const root = document.getElementById("cascade-root");
+      const canvas = document.createElement("canvas");
+      canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
+      root.appendChild(canvas);
+
+      const gl = canvas.getContext("webgl2", {
+        alpha: false, antialias: false, depth: false, stencil: false,
+        powerPreference: "low-power", preserveDrawingBuffer: false,
+      });
+      const G = gl ? buildGL(gl) : null;
+      if (!G) return;
+
+      const adv = ADVANCED_DEFAULTS;
+      const scroll = new Float64Array(4);
+      const fallV = new Float64Array(4);
+      let gScroll = 0, gPhase = 0, clock = 0, last = -1;
+      let mx = 0.5, my = 0.5, tu = 0.5, tv = 0.5, inside = false, hov = 0;
+
+      const fall = Math.max(0.2, num(adv.fallSpeed, 7)) / 100;
+      const spread = clamp(num(adv.fallSpread, 50), 0, 90) / 100;
+      for (let L = 0; L < 4; L++) fallV[L] = Math.max(fall * (1 + ((L - 1.5) / 1.5) * spread), 1e-3);
+      const gFall = Math.max(fall, 1e-3);
+      const glintRate = clamp(20, 0, 60);
+      const glintP = 35 / Math.max(glintRate, 0.5);
+      const density = clamp(700, 100, 1500) / 700;
+      const wTop = Math.max(5, num(adv.topWidth, 70)) / 1000;
+      const wBot = (clamp(70, 20, 150) / 100) * 0.25;
+      const flakeR = Math.max(0.5, num(adv.flakeSize, 3)) / 1600;
+      const sizeVar = clamp(num(adv.sizeVariance, 60), 0, 200) / 100;
+      const glintArm = Math.max(1, num(adv.glintArm, 34)) / 1000;
+      const glintHalo = Math.max(0.5, num(adv.glintHalo, 9)) / 1000;
+      const glintReach = Math.max(glintArm * 0.6, glintHalo * 3);
+      const core = clamp(num(adv.coreDensity, 42), 0, 100) / 100 * (1 + Math.max(0, num(adv.topBoost, 150)) / 100) * density;
+      const stray = clamp(num(adv.stray, 3), 0, 100) / 100 * density;
+      const uCap = Math.max(
+        core > 1e-6 ? Math.sqrt(Math.log(core / 1e-6) / 1.2) : 0,
+        stray > 1e-6 ? 1.5 + Math.log(stray / 1e-6) : 0
+      ) + 0.2;
+
+      const bg = parseHexRGB("#000000", [0, 0, 0]);
+      const base = parseHexRGB("#FF6500", [1, 0.4, 0]);
+      const acc = parseHexRGB("#E0C1E3", [0.88, 0.76, 0.89]);
+      const hazeLow = parseHexRGB(adv.hazeLow, [0.23, 0.16, 0.42]);
+      const lav = parseHexRGB(adv.flakeLav, [0.68, 0.54, 0.71]);
+      const pink = parseHexRGB(adv.flakePink, [0.88, 0.44, 0.82]);
+      const blue = parseHexRGB(adv.flakeBlue, [0.63, 0.69, 1]);
+      const warm = parseHexRGB(adv.flakeWarm, [0.91, 0.63, 0.5]);
+      const gPink = parseHexRGB(adv.glintPink, [1, 0.48, 0.82]);
+      const gBlue = parseHexRGB(adv.glintBlue, [0.54, 0.54, 1]);
+
+      root.addEventListener("pointermove", (e) => {
+        const r = root.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          tu = (e.clientX - r.left) / r.width;
+          tv = (e.clientY - r.top) / r.height;
+          inside = true;
+        }
+      });
+      root.addEventListener("pointerleave", () => { inside = false; });
+
+      function resizeAndSetStatic(W, H) {
+        const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
+        let k = dpr;
+        const px = W * H * k * k;
+        if (px > MAX_PIXELS) k *= Math.sqrt(MAX_PIXELS / px);
+        const bw = Math.max(1, Math.round(W * k));
+        const bh = Math.max(1, Math.round(H * k));
+        if (canvas.width !== bw || canvas.height !== bh) {
+          canvas.width = bw;
+          canvas.height = bh;
+        }
+        gl.viewport(0, 0, bw, bh);
+        const fit = H > 0 ? Math.min(1, W / H / REF_ASPECT) : 1;
+        const scale = Math.max(0.05, fit);
+        const D = dirFrame("down", bw / Math.max(1, bh));
+        for (const P of [G.base, G.flake, G.glint, G.grain]) {
+          gl.useProgram(P.prog);
+          gl.uniform2f(P.loc.res, bw, bh);
+          gl.uniform4f(P.u("uDir"), D.m[0], D.m[1], D.m[2], D.m[3]);
+          gl.uniform2f(P.u("uDirO"), D.o[0], D.o[1]);
+          gl.uniform3f(P.loc.bg, bg[0], bg[1], bg[2]);
+          gl.uniform3f(P.loc.base, base[0], base[1], base[2]);
+          gl.uniform3f(P.loc.accent, acc[0], acc[1], acc[2]);
+          gl.uniform1f(P.loc.scale, scale);
+          gl.uniform1f(P.u("uDensity"), density);
+          gl.uniform1f(P.u("uWBot"), wBot);
+          gl.uniform1f(P.u("uGlintRate"), glintRate);
+          gl.uniform1f(P.u("uHoverAmt"), clamp(num(adv.hover, 50), 0, 100) / 50);
+          gl.uniform1f(P.u("uFall"), fall);
+          gl.uniform1f(P.u("uFallSpread"), spread);
+          gl.uniform1f(P.u("uDrift"), num(adv.drift, 2) / 1000);
+          gl.uniform1f(P.u("uWTop"), wTop);
+          gl.uniform1f(P.u("uCoreDen"), clamp(num(adv.coreDensity, 42), 0, 100) / 100);
+          gl.uniform1f(P.u("uTopBoost"), Math.max(0, num(adv.topBoost, 150)) / 100);
+          gl.uniform1f(P.u("uTopDepth"), Math.max(1, num(adv.topDepth, 30)) / 100);
+          gl.uniform1f(P.u("uStray"), clamp(num(adv.stray, 3), 0, 100) / 100);
+          gl.uniform1f(P.u("uFlakeR"), flakeR);
+          gl.uniform1f(P.u("uSizeVar"), sizeVar);
+          gl.uniform1f(P.u("uFlakeBright"), Math.max(0, num(adv.flakeBright, 100)) / 100);
+          gl.uniform1f(P.u("uShimmer"), clamp(num(adv.shimmer, 30), 0, 100) / 100);
+          gl.uniform1f(P.u("uWarmShare"), clamp(num(adv.warmShare, 1), 0, 100) / 100);
+          gl.uniform1f(P.u("uGlintLife"), Math.max(50, num(adv.glintLife, 450)) / 1000);
+          gl.uniform1f(P.u("uGlintRise"), Math.max(10, num(adv.glintRise, 150)) / 1000);
+          gl.uniform1f(P.u("uGlintArm"), glintArm);
+          gl.uniform1f(P.u("uGlintCore"), Math.max(0.5, num(adv.glintCore, 3)) / 1000);
+          gl.uniform1f(P.u("uGlintHalo"), glintHalo);
+          gl.uniform1f(P.u("uGlintBright"), Math.max(0, num(adv.glintBright, 100)) / 100);
+          gl.uniform1f(P.u("uGlintWarm"), clamp(num(adv.glintWarm, 7), 0, 100) / 100);
+          gl.uniform1f(P.u("uHaze"), Math.max(0, num(adv.haze, 85)) / 100);
+          gl.uniform1f(P.u("uHazeW"), Math.max(5, num(adv.hazeWidth, 50)) / 1000);
+          gl.uniform1f(P.u("uHazeDepth"), Math.max(1, num(adv.hazeDepth, 22)) / 100);
+          gl.uniform3f(P.u("uHazeLow"), hazeLow[0], hazeLow[1], hazeLow[2]);
+          gl.uniform3f(P.u("uLav"), lav[0], lav[1], lav[2]);
+          gl.uniform3f(P.u("uPink"), pink[0], pink[1], pink[2]);
+          gl.uniform3f(P.u("uBlue"), blue[0], blue[1], blue[2]);
+          gl.uniform3f(P.u("uWarm"), warm[0], warm[1], warm[2]);
+          gl.uniform3f(P.u("uGPink"), gPink[0], gPink[1], gPink[2]);
+          gl.uniform3f(P.u("uGBlue"), gBlue[0], gBlue[1], gBlue[2]);
+          gl.uniform1f(P.u("uPushR"), Math.max(1, num(adv.pushRadius, 12)) / 100);
+          gl.uniform1f(P.u("uSeed"), Math.round(clamp(num(adv.seed, 1), 0, 999)));
+          gl.uniform1f(P.u("uGrain"), 0);
+          gl.uniform1f(P.u("uVignette"), 0);
+        }
+        return { bw, bh, scale, D };
+      }
+
+      function frame(now) {
+        requestAnimationFrame(frame);
+        const dt = last < 0 ? 0 : Math.min((now - last) / 1000, 0.05);
+        last = now;
+        const W = root.clientWidth || window.innerWidth;
+        const H = root.clientHeight || window.innerHeight;
+        const { bw, bh, scale, D } = resizeAndSetStatic(W, H);
+
+        const ad = dt * 2;
+        if (ad > 0) {
+          for (let L = 0; L < 4; L++) scroll[L] = (scroll[L] + ad * fallV[L]) % (HASH_ROWS * FLAKE_ROW);
+          gScroll = (gScroll + ad * gFall) % (HASH_ROWS * GLINT_ROW);
+          gPhase = (gPhase + ad / glintP) % HASH_ROWS;
+          clock = (clock + ad) % TIME_WRAP;
+        }
+        const target = inside ? 1 : 0;
+        const kp = 1 - Math.exp(-dt / 0.06);
+        if (hov < 0.01 && inside) { mx = tu; my = tv; }
+        else { mx += (tu - mx) * kp; my += (tv - my) * kp; }
+        hov += (target - hov) * (1 - Math.exp(-dt * 6));
+
+        const px = 1 / (bh * scale);
+        const ha = (0.5 * bw) / bh;
+        let wx0 = Infinity, wx1 = -Infinity, wy0 = Infinity, wy1 = -Infinity;
+        for (let k = 0; k < 4; k++) {
+          const fx = k & 1 ? ha : -ha;
+          const fy = k >> 1;
+          const qx = (D.m[0] * fx + D.m[1] * fy + D.o[0]) / scale;
+          const qy = (D.m[2] * fx + D.m[3] * fy + D.o[1]) / scale;
+          wx0 = Math.min(wx0, qx); wx1 = Math.max(wx1, qx);
+          wy0 = Math.min(wy0, qy); wy1 = Math.max(wy1, qy);
+        }
+
+        const F = G.flakes; F.n = 0; F.max = 0;
+        for (let L = 0; L < 4; L++) {
+          const sz = 0.75 + 0.2 * L;
+          const reach = Math.max(flakeR * sz * (1 + sizeVar) * 1.4, 0.6 * px) * 1.8 + 2 * px;
+          fillRows(F, L, scroll[L], FLAKE_ROW, 0.16, L * 0.37, L * 0.61, 0.15, 0.85,
+            2 * reach + 2 * px, (num(adv.drift, 2) / 1000) / fallV[L], wx0, wx1, wy0, wy1, wTop, wBot, uCap);
+        }
+        uploadRows(gl, F);
+
+        const Gl = G.glints; Gl.n = 0; Gl.max = 0;
+        if (glintRate > 0) {
+          fillRows(Gl, 0, gScroll, GLINT_ROW, 0.55, 0, 0, 0.1, 0.9,
+            2 * (glintReach + 2 * px) + 2 * px, (num(adv.drift, 2) / 1000) / gFall, wx0, wx1, wy0, wy1, wTop, wBot, Infinity);
+        }
+        uploadRows(gl, Gl);
+
+        const setDyn = (P) => {
+          gl.useProgram(P.prog);
+          gl.uniform1f(P.loc.time, clock);
+          gl.uniform4f(P.loc.scroll, scroll[0], scroll[1], scroll[2], scroll[3]);
+          gl.uniform1f(P.loc.gScroll, gScroll);
+          gl.uniform1f(P.loc.gPhase, gPhase);
+          gl.uniform2f(P.loc.mouse, mx, 1 - my);
+          gl.uniform1f(P.loc.hover, hov);
+        };
+
+        gl.disable(gl.BLEND);
+        setDyn(G.base);
+        gl.bindVertexArray(G.empty);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        gl.enable(gl.BLEND);
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        if (F.n > 0) {
+          setDyn(G.flake);
+          gl.bindVertexArray(F.vao);
+          gl.drawArraysInstanced(gl.TRIANGLES, 0, 6 * F.max, F.n);
+        }
+        if (Gl.n > 0) {
+          setDyn(G.glint);
+          gl.bindVertexArray(Gl.vao);
+          gl.drawArraysInstanced(gl.TRIANGLES, 0, 6 * Gl.max, Gl.n);
+        }
+        gl.bindVertexArray(null);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
