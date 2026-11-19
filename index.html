@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlimmerVale</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet" />
   <style>
     * {
       box-sizing: border-box;
@@ -22,7 +19,7 @@
       font-family: "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
-    .scene {
+    .page-shell {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -32,8 +29,7 @@
         linear-gradient(180deg, #3f5396 0%, #1d173d 42%, #07040e 75%, #030207 100%);
     }
 
-    /* Glittering ridge & glowing meadow flowers backdrop */
-    .scene::before {
+    .page-shell::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -49,21 +45,17 @@
       opacity: 0.95;
     }
 
-    /* Top slot matching the green circle region */
-    .top-bolster-wrap {
+    .top-zone {
       position: absolute;
-      top: 4%;
+      top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      width: min(420px, 82vw);
-      height: 150px;
+      width: min(560px, 92vw);
+      height: 170px;
       z-index: 20;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
-    .bolster-root {
+    .vb-root {
       position: relative;
       width: 100%;
       height: 100%;
@@ -71,78 +63,77 @@
       touch-action: pan-y;
     }
 
-    .bolster-stage {
+    .vb-stage {
       position: absolute;
       left: 50%;
       top: 50%;
-      transform: translate(-50%, -50%);
       pointer-events: none;
     }
 
-    .bolster-canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    .bolster-hit {
+    .vb-hit {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      border-radius: 9999px;
       background: transparent;
       border: none;
       padding: 0;
       margin: 0;
       cursor: pointer;
-      pointer-events: auto;
       outline-offset: 4px;
       -webkit-tap-highlight-color: transparent;
+      display: block;
+      pointer-events: auto;
     }
 
-    .bolster-hit:focus-visible {
-      outline: 3px solid rgba(217, 255, 212, 0.75);
-    }
-
-    /* Lower foreground text matching the green rectangle area */
-    .touch-grass-label {
+    .touch-grass {
       position: absolute;
       left: 50%;
-      bottom: 22%;
+      bottom: 20%;
       transform: translateX(-50%);
       z-index: 15;
-      color: #a855f7;
+      color: #9333ea;
       font-weight: 800;
-      font-size: clamp(1.75rem, 4vw, 3.2rem);
+      font-size: clamp(1.75rem, 4vw, 3.25rem);
       letter-spacing: -0.02em;
       text-align: center;
       white-space: nowrap;
-      text-shadow: 0 2px 18px rgba(88, 28, 135, 0.65), 0 0 28px rgba(168, 85, 247, 0.35);
+      text-shadow: 0 2px 18px rgba(88, 28, 135, 0.7), 0 0 24px rgba(147, 51, 234, 0.4);
       pointer-events: none;
       user-select: none;
     }
   </style>
 </head>
 <body>
-  <main class="scene" id="scene">
-    <div class="top-bolster-wrap">
-      <div class="bolster-root" id="bolsterRoot">
-        <div class="bolster-stage" id="bolsterStage">
-          <canvas class="bolster-canvas" id="bolsterCanvas"></canvas>
-          <a class="bolster-hit" id="bolsterHit" href="download.html" aria-label="Download"></a>
+  <div class="page-shell">
+    <div class="top-zone">
+      <div class="vb-root" id="vbRoot">
+        <div class="vb-stage" id="vbStage">
+          <canvas id="vbCanvas" style="position:absolute;inset:0;width:100%;height:100%;display:block;"></canvas>
+          <a id="vbHit" class="vb-hit" href="download.html" aria-label="Download"></a>
         </div>
       </div>
     </div>
 
-    <div class="touch-grass-label" aria-label="Touch Grass"> Touch Grass</div>
-  </main>
+    <div class="touch-grass"> Touch Grass</div>
+  </div>
 
   <script>
     (function () {
+      const REF_W = 1200;
+      const REF_H = 800;
+      const REF_ASPECT = REF_W / REF_H;
+      const MAX_DPR = 2;
+      const PIXEL_CAP = 2.6e6;
+      const PERSPECTIVE = 1000;
+      const STEP = 1 / 120;
       const MARGIN = 0.8;
       const GRID_PITCH = 0.05;
-      const STEP = 1 / 120;
+      const QUALITY_FLOOR = 0.6;
+
+      const TEXT_SIZE = 0.3;
+      const TEXT_LIFT = 0;
+      const TEXT_MAX_W = 0.92;
+      const TEXT_MAX_H = 0.95;
+      const LINE_H = 1.12;
+
       const RIM_H = 0.045;
       const RIM_W = 0.075;
       const DOME_H = 0.2;
@@ -153,6 +144,7 @@
       const LIGHT_FALLOFF = 0.3;
       const SHOULDER = 0.3;
       const HOVER_HYST = 0.02;
+
       const SWELL_SIGMA = 0.45;
       const SWELL_XY = 0.34;
       const SWELL_Z = 0.3;
@@ -161,6 +153,7 @@
       const PRESS_SIGMA = 0.3;
       const PRESS_Z = 0.36;
       const PRESS_SQUASH = 0.03;
+
       const MEM_W = 13;
       const INF_W = 12;
       const DWELL_SHARE = 0.22;
@@ -168,50 +161,51 @@
       const WAKE_GAIN = 0.08;
       const WAKE_MAX = 0.4;
       const MEM_T = 3;
+
       const CRAWL_REST = 1.0;
       const CRAWL_ACTIVE = 1.0;
       const CRAWL_CYCLE = 1024;
+      const IDLE_DIVISOR = 2;
+      const IDLE_DIVISOR_MAX = 4;
+
       const RIPPLE_SPEED = 1.6;
       const RIPPLE_DAMP = 9;
       const RIPPLE_SIGMA = 0.12;
       const RIPPLE_GAIN = 1.4;
       const FOLD_DRIFT = 0.45;
+
       const CLOTH_W = 256;
       const CLOTH_H = 128;
       const CLOTH_TX = 3.2;
       const CLOTH_TY = 1.6;
 
-      const CFG = {
+      const cfg = {
         text: "Download",
         textColor: "#D9FFD4",
-        buttonWidth: 240,
-        buttonHeight: 82,
-        radius: 41,
+        buttonWidth: 500,
+        buttonHeight: 172,
+        radius: 86,
         fabric: "#4B8A10",
         drift: 5,
-        reach: 0,
-        puff: 5,
-        bulge: 5,
-        press: 5,
-        wobble: 5,
-        drag: 5,
-        ripple: 5,
-        release: 0.7,
-        nap: 100,
-        pile: 100,
-        wrinkles: 100,
-        sheen: 100,
-        fuzz: 0.45,
-        hem: 5,
-        lightAngle: 35,
-        lightHeight: 41,
-        shadow: 28,
-        glow: 0,
+        pl: { x: 0, y: 0, angle: 0, tilt: 0 },
+        rs: { reach: 0, puff: 5, bulge: 5, press: 5, wobble: 5, drag: 5, ripple: 5, release: 0.7 },
+        adv: {
+          hem: 5,
+          nap: 100,
+          fuzz: 0.45,
+          glow: 0,
+          pile: 100,
+          sheen: 100,
+          shadow: 28,
+          wrinkles: 100,
+          lightAngle: 35,
+          lightHeight: 41,
+        },
+        lines: ["Download"],
       };
 
-      function clamp(x, a, b) {
-        return x < a ? a : x > b ? b : x;
-      }
+      const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+      const srgbToLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 
       function mulberry(seed) {
         let s = seed >>> 0;
@@ -224,16 +218,15 @@
         };
       }
 
-      function srgbToLin(c) {
-        return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-      }
-
-      function hexToLin(hex) {
-        const clean = hex.replace("#", "");
-        const r = parseInt(clean.slice(0, 2), 16) / 255;
-        const g = parseInt(clean.slice(2, 4), 16) / 255;
-        const b = parseInt(clean.slice(4, 6), 16) / 255;
-        return [srgbToLin(r), srgbToLin(g), srgbToLin(b)];
+      function resolveRGB(el, c) {
+        const prev = el.style.color;
+        el.style.color = "";
+        el.style.color = c;
+        const out = getComputedStyle(el).color;
+        el.style.color = prev;
+        const m = out.match(/[\d.]+/g);
+        if (!m || m.length < 3) return [0, 0, 0];
+        return [+m[0] / 255, +m[1] / 255, +m[2] / 255];
       }
 
       function bakeCloth() {
@@ -535,32 +528,49 @@
         outColor = vec4(rgb * cover + glow * (1.0 - cover) + dither / 255.0, a);
       }`;
 
-      const root = document.getElementById("bolsterRoot");
-      const stage = document.getElementById("bolsterStage");
-      const canvas = document.getElementById("bolsterCanvas");
-      const hit = document.getElementById("bolsterHit");
-      const gl = canvas.getContext("webgl2", {
-        alpha: true,
-        premultipliedAlpha: true,
-        antialias: false,
-        depth: false,
-        stencil: false,
-        powerPreference: "low-power",
-      });
-
-      if (!gl) {
-        hit.textContent = CFG.text;
-        hit.style.width = CFG.buttonWidth + "px";
-        hit.style.height = CFG.buttonHeight + "px";
-        hit.style.background = CFG.fabric;
-        hit.style.color = CFG.textColor;
-        hit.style.display = "flex";
-        hit.style.alignItems = "center";
-        hit.style.justifyContent = "center";
-        hit.style.textDecoration = "none";
-        hit.style.fontWeight = "800";
-        return;
+      function makeLattice(hw, r) {
+        const spanX = 2 * (hw + MARGIN);
+        const spanY = 2 * (0.5 + MARGIN);
+        const nx = clamp(Math.round(spanX / GRID_PITCH) + 1, 8, 160);
+        const ny = clamp(Math.round(spanY / GRID_PITCH) + 1, 8, 96);
+        const n = nx * ny;
+        const L = {
+          nx, ny, ox: -spanX / 2, oy: -spanY / 2, spanX, spanY,
+          px: new Float32Array(n), py: new Float32Array(n),
+          dirX: new Float32Array(n), dirY: new Float32Array(n),
+          d: new Float32Array(n * 3), v: new Float32Array(n * 3),
+          r: new Float32Array(n), rv: new Float32Array(n),
+          gx: new Float32Array(nx * 3), gy: new Float32Array(ny * 3),
+          tex: new Float32Array(n * 4), grad: new Float32Array(n * 2),
+        };
+        const ix = Math.max(0, hw - r);
+        const iy = Math.max(0, 0.5 - r);
+        for (let j = 0; j < ny; j++) {
+          for (let i = 0; i < nx; i++) {
+            const k = j * nx + i;
+            const x = L.ox + (spanX * i) / (nx - 1);
+            const y = L.oy + (spanY * j) / (ny - 1);
+            L.px[k] = x;
+            L.py[k] = y;
+            const dx = x - clamp(x, -ix, ix);
+            const dy = y - clamp(y, -iy, iy);
+            const len = Math.hypot(dx, dy);
+            const reachIn = clamp((len - (0.5 - RIM_ZONE)) / RIM_ZONE, 0, 1);
+            const k2 = (reachIn * reachIn * (3 - 2 * reachIn)) / Math.max(len, 1e-3);
+            L.dirX[k] = dx * k2;
+            L.dirY[k] = dy * k2;
+          }
+        }
+        return L;
       }
+
+      const root = document.getElementById("vbRoot");
+      const stage = document.getElementById("vbStage");
+      const canvas = document.getElementById("vbCanvas");
+      const hit = document.getElementById("vbHit");
+      const gl = canvas.getContext("webgl2", {
+        alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: "low-power",
+      });
 
       const vs = gl.createShader(gl.VERTEX_SHADER);
       const fs = gl.createShader(gl.FRAGMENT_SHADER);
@@ -580,7 +590,6 @@
         "uFabric", "uSheenCol", "uInk", "uInkOn", "uLight", "uLook", "uEdge",
         "uGridTex", "uCloth", "uNoise", "uLabel", "uGridGrad"
       ].forEach((n) => { loc[n] = gl.getUniformLocation(prog, n); });
-
       gl.uniform1i(loc.uGridTex, 0);
       gl.uniform1i(loc.uCloth, 1);
       gl.uniform1i(loc.uNoise, 2);
@@ -588,7 +597,7 @@
       gl.uniform1i(loc.uGridGrad, 4);
       gl.disable(gl.BLEND);
 
-      function makeTex(filter, wrap) {
+      function mkTex(filter, wrap) {
         const t = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, t);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
@@ -598,31 +607,36 @@
         return t;
       }
 
-      const texGrid = makeTex(gl.LINEAR, gl.CLAMP_TO_EDGE);
-      const texGrad = makeTex(gl.LINEAR, gl.CLAMP_TO_EDGE);
-      const texCloth = makeTex(gl.LINEAR, gl.REPEAT);
+      const texGrid = mkTex(gl.LINEAR, gl.CLAMP_TO_EDGE);
+      const texGrad = mkTex(gl.LINEAR, gl.CLAMP_TO_EDGE);
+      const texCloth = mkTex(gl.LINEAR, gl.REPEAT);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, CLOTH_W, CLOTH_H, 0, gl.RGBA, gl.FLOAT, bakeCloth());
-      const texNoise = makeTex(gl.LINEAR, gl.REPEAT);
+      const texNoise = mkTex(gl.LINEAR, gl.REPEAT);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, bakeNoise());
-      const texLabel = makeTex(gl.LINEAR_MIPMAP_LINEAR, gl.CLAMP_TO_EDGE);
+      const texLabel = mkTex(gl.LINEAR_MIPMAP_LINEAR, gl.CLAMP_TO_EDGE);
 
       const labelCanvas = document.createElement("canvas");
-      let labelUploaded = false;
-      function uploadLabel(bwPx, bhPx, scale) {
-        if (labelUploaded) return;
-        labelUploaded = true;
-        const W = Math.max(1, Math.min(1024, Math.round(bwPx * scale)));
-        const H = Math.max(1, Math.min(512, Math.round(bhPx * scale)));
+      let lastLabelKey = "";
+      function drawLabel(bwPx, bhPx, scale) {
+        const lk = `${Math.round(bwPx * scale)}x${Math.round(bhPx * scale)}`;
+        if (lk === lastLabelKey) return;
+        lastLabelKey = lk;
+        const W = Math.max(1, Math.min(2048, Math.round(bwPx * scale)));
+        const H = Math.max(1, Math.min(1024, Math.round(bhPx * scale)));
         labelCanvas.width = W;
         labelCanvas.height = H;
         const ctx = labelCanvas.getContext("2d");
         ctx.clearRect(0, 0, W, H);
-        const fs = Math.min(H * 0.32, W * 0.22);
-        ctx.font = `800 ${fs.toFixed(1)}px "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-        ctx.fillStyle = "#ffffff";
+        const want = H * TEXT_SIZE;
+        let fs = Math.min(want, (H * TEXT_MAX_H) / LINE_H);
+        ctx.font = `800 ${fs.toFixed(2)}px "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+        const wText = ctx.measureText(cfg.text).width;
+        if (wText > W * TEXT_MAX_W) fs *= (W * TEXT_MAX_W) / wText;
+        ctx.font = `800 ${fs.toFixed(2)}px "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+        ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(CFG.text, W / 2, H / 2 + 1);
+        ctx.fillText(cfg.text, W / 2, H / 2 - TEXT_LIFT * H);
         gl.activeTexture(gl.TEXTURE3);
         gl.bindTexture(gl.TEXTURE_2D, texLabel);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
@@ -630,99 +644,27 @@
         gl.generateMipmap(gl.TEXTURE_2D);
       }
 
-      function makeLattice(hw, r) {
-        const spanX = 2 * (hw + MARGIN);
-        const spanY = 2 * (0.5 + MARGIN);
-        const nx = clamp(Math.round(spanX / GRID_PITCH) + 1, 8, 160);
-        const ny = clamp(Math.round(spanY / GRID_PITCH) + 1, 8, 96);
-        const n = nx * ny;
-        const dirX = new Float32Array(n);
-        const dirY = new Float32Array(n);
-        const ox = -spanX / 2;
-        const oy = -spanY / 2;
-        const ix = Math.max(0, hw - r);
-        const iy = Math.max(0, 0.5 - r);
-        for (let j = 0; j < ny; j++) {
-          for (let i = 0; i < nx; i++) {
-            const k = j * nx + i;
-            const x = ox + (spanX * i) / (nx - 1);
-            const y = oy + (spanY * j) / (ny - 1);
-            const dx = x - clamp(x, -ix, ix);
-            const dy = y - clamp(y, -iy, iy);
-            const len = Math.hypot(dx, dy);
-            const reachIn = clamp((len - (0.5 - RIM_ZONE)) / RIM_ZONE, 0, 1);
-            const k2 = (reachIn * reachIn * (3 - 2 * reachIn)) / Math.max(len, 1e-3);
-            dirX[k] = dx * k2;
-            dirY[k] = dy * k2;
-          }
-        }
-        return {
-          nx, ny, ox, oy, spanX, spanY, dirX, dirY,
-          d: new Float32Array(n * 3),
-          v: new Float32Array(n * 3),
-          r: new Float32Array(n),
-          rv: new Float32Array(n),
-          gx: new Float32Array(nx * 3),
-          gy: new Float32Array(ny * 3),
-          tex: new Float32Array(n * 4),
-          grad: new Float32Array(n * 2),
-        };
-      }
-
-      const bwPx = CFG.buttonWidth;
-      const bhPx = CFG.buttonHeight;
-      const hw = bwPx / bhPx / 2;
-      const rr = CFG.radius / bhPx;
-      const mPx = MARGIN * bhPx;
-      const cssW = bwPx + 2 * mPx;
-      const cssH = bhPx + 2 * mPx;
-
-      stage.style.width = cssW + "px";
-      stage.style.height = cssH + "px";
-      hit.style.width = bwPx + "px";
-      hit.style.height = bhPx + "px";
-      hit.style.borderRadius = CFG.radius + "px";
-
-      const L = makeLattice(hw, rr);
-      const fabricLin = hexToLin(CFG.fabric);
-      const inkLin = hexToLin(CFG.textColor);
-      const mx = Math.max(fabricLin[0], fabricLin[1], fabricLin[2], 1e-4);
-      const sheenLin = fabricLin.map((v) => (v / mx) * 0.95 + 0.008);
-
       const state = {
         hov: 0, relT: -1, relFrom: 0, dwell: 0, hovTarget: 0,
         cx: 0, cy: 0, pvx: 0, pvy: 0,
         press: 0, pressV: 0, pressTarget: 0,
         inf: 0, infV: 0, acc: 0, phase: 0, act: 0,
+        quality: 1, idleDiv: IDLE_DIVISOR, expectMs: 16.7,
       };
       const pt = { has: false, x: 0, y: 0, down: false, bx: 0, by: 0 };
 
-      root.addEventListener("pointermove", (e) => {
-        pt.x = e.clientX;
-        pt.y = e.clientY;
-        pt.has = true;
-      });
-      root.addEventListener("pointerdown", (e) => {
-        pt.x = e.clientX;
-        pt.y = e.clientY;
-        pt.has = true;
-        pt.down = true;
-      });
-      window.addEventListener("pointerup", () => {
-        pt.down = false;
-      });
-      root.addEventListener("pointerleave", () => {
-        pt.has = false;
-        pt.down = false;
-      });
+      root.addEventListener("pointermove", (e) => { pt.x = e.clientX; pt.y = e.clientY; pt.has = true; });
+      root.addEventListener("pointerdown", (e) => { pt.x = e.clientX; pt.y = e.clientY; pt.has = true; pt.down = true; });
+      window.addEventListener("pointerup", () => { pt.down = false; });
+      root.addEventListener("pointerleave", () => { pt.has = false; pt.down = false; });
 
-      const dampScale = () => Math.exp(-0.13 * (CFG.wobble - 5));
+      const dampScale = () => Math.exp(-0.13 * (clamp(cfg.rs.wobble, 0, 10) - 5));
 
-      function stepLattice() {
-        const bulge = CFG.bulge / 5;
-        const pressK = CFG.press / 5;
-        const dragK = (CFG.drag / 5) * 3.8;
-        const rippleK = CFG.ripple / 5;
+      function stepLattice(L) {
+        const bulge = clamp(cfg.rs.bulge, 0, 10) / 5;
+        const pressK = clamp(cfg.rs.press, 0, 10) / 5;
+        const dragK = (clamp(cfg.rs.drag, 0, 10) / 5) * 3.8;
+        const rippleK = clamp(cfg.rs.ripple, 0, 10) / 5;
         const memK = MEM_W * MEM_W;
         const damp = 2 * MEM_W * dampScale();
         const h = L.spanX / (L.nx - 1);
@@ -734,7 +676,7 @@
         const inv2s = 1 / (2 * SWELL_SIGMA * SWELL_SIGMA);
         const inv2p = 1 / (2 * PRESS_SIGMA * PRESS_SIGMA);
         const inv2r = 1 / (2 * RIPPLE_SIGMA * RIPPLE_SIGMA);
-        const wake = 1 + Math.min(WAKE_MAX, WAKE_GAIN * Math.hypot(state.pvx, state.pvy)) * (CFG.drag / 5);
+        const wake = 1 + Math.min(WAKE_MAX, WAKE_GAIN * Math.hypot(state.pvx, state.pvy)) * (clamp(cfg.rs.drag, 0, 10) / 5);
         const amp = ((1 - DWELL_SHARE) * state.hov * state.hov + DWELL_SHARE * state.dwell) * bulge * wake;
         const pr = state.press * pressK;
         const { nx, ny, d, v, r, rv, dirX, dirY, gx, gy } = L;
@@ -796,24 +738,67 @@
         }
       }
 
-      let lastNow = 0;
-      let firstUpload = true;
+      const fabric = resolveRGB(root, cfg.fabric).map(srgbToLin);
+      const ink = resolveRGB(root, cfg.textColor).map(srgbToLin);
+      const mx = Math.max(fabric[0], fabric[1], fabric[2], 1e-4);
+      const sheen = fabric.map((v) => (v / mx) * 0.95 + 0.008);
 
-      function frame(now) {
+      let lattice = null;
+      let latticeKey = "";
+      let firstTex = true;
+      let lastNow = 0;
+
+      function tick(now) {
         const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 1 / 60;
         lastNow = now;
 
-        const rect = hit.getBoundingClientRect();
-        if (pt.has && rect.width > 0 && rect.height > 0) {
-          pt.bx = (pt.x - (rect.left + rect.width / 2)) / bhPx;
-          pt.by = (pt.y - (rect.top + rect.height / 2)) / bhPx;
+        const boxRect = root.getBoundingClientRect();
+        const W = Math.max(120, boxRect.width);
+        const H = Math.max(80, boxRect.height);
+        const Su = Math.min(H, W / REF_ASPECT);
+        const uu = Su / REF_H;
+        const bhPx = cfg.buttonHeight * uu;
+        const bwPx = cfg.buttonWidth * uu;
+        const hw = cfg.buttonWidth / cfg.buttonHeight / 2;
+        const rr = cfg.radius / cfg.buttonHeight;
+        const mPx = MARGIN * bhPx;
+        const cssW = bwPx + 2 * mPx;
+        const cssH = bhPx + 2 * mPx;
+
+        stage.style.width = cssW + "px";
+        stage.style.height = cssH + "px";
+        stage.style.marginLeft = -cssW / 2 + "px";
+        stage.style.marginTop = -cssH / 2 + "px";
+        stage.style.transform = `perspective(${(PERSPECTIVE * uu).toFixed(1)}px) rotateX(${cfg.pl.tilt}deg) rotate(${cfg.pl.angle}deg)`;
+
+        hit.style.left = mPx + "px";
+        hit.style.top = mPx + "px";
+        hit.style.width = bwPx + "px";
+        hit.style.height = bhPx + "px";
+        hit.style.borderRadius = cfg.radius * uu + "px";
+
+        const lk = `${hw.toFixed(4)}|${rr.toFixed(4)}`;
+        if (!lattice || latticeKey !== lk) {
+          lattice = makeLattice(hw, rr);
+          latticeKey = lk;
+          firstTex = true;
+        }
+
+        if (pt.has) {
+          const hr = hit.getBoundingClientRect();
+          if (hr.width > 0 && hr.height > 0) {
+            pt.bx = (pt.x - (hr.left + hr.width / 2)) / bhPx;
+            pt.by = (pt.y - (hr.top + hr.height / 2)) / bhPx;
+          }
         }
 
         const qx = Math.abs(pt.bx) - hw + rr;
         const qy = Math.abs(pt.by) - 0.5 + rr;
-        const sdPointer = Math.min(Math.max(qx, qy), 0) + Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - rr;
-        const target = pt.has && sdPointer <= (state.hovTarget > 0 ? HOVER_HYST : 0) ? 1 : 0;
+        const sdp = Math.min(Math.max(qx, qy), 0) + Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - rr;
+        const reach = clamp(cfg.rs.reach, 0, 10) * 0.03;
+        const target = pt.has && sdp <= reach + (state.hovTarget > 0 ? HOVER_HYST : 0) ? 1 : 0;
         state.hovTarget = target;
+        root.style.cursor = target > 0 && pt.has ? "pointer" : "";
         state.pressTarget = pt.down && target > 0 ? 1 : 0;
         const tx = pt.has ? pt.bx : state.cx;
         const ty = pt.has ? pt.by : state.cy;
@@ -825,12 +810,9 @@
             state.hov += (state.hovTarget - state.hov) * (1 - Math.exp(-STEP / 0.05));
             state.relT = -1;
           } else if (state.hov > 0) {
-            if (state.relT < 0) {
-              state.relT = 0;
-              state.relFrom = state.hov;
-            }
+            if (state.relT < 0) { state.relT = 0; state.relFrom = state.hov; }
             state.relT += STEP;
-            const u = Math.min(1, state.relT / Math.max(0.05, CFG.release));
+            const u = Math.min(1, state.relT / Math.max(0.05, cfg.rs.release));
             state.hov = state.relFrom * (1 - u * u * (3 - 2 * u));
           }
           if (state.hovTarget > 0) state.dwell += (state.hov - state.dwell) * (1 - Math.exp(-STEP / DWELL_TAU));
@@ -850,43 +832,46 @@
           state.pressV += (wp * wp * (state.pressTarget - state.press) - 2 * zp * wp * state.pressV) * STEP;
           state.press += state.pressV * STEP;
 
-          const puff = CFG.puff / 5;
-          const it = ((1 - DWELL_SHARE) * state.hov + DWELL_SHARE * state.dwell) * puff - state.press * 0.35 * (CFG.press / 5);
+          const puff = clamp(cfg.rs.puff, 0, 10) / 5;
+          const it = ((1 - DWELL_SHARE) * state.hov + DWELL_SHARE * state.dwell) * puff - state.press * 0.35 * (clamp(cfg.rs.press, 0, 10) / 5);
           state.infV += (INF_W * INF_W * (it - state.inf) - 2 * INF_W * dampScale() * state.infV) * STEP;
           state.inf += state.infV * STEP;
 
           const act = Math.min(1, Math.max(state.hov, Math.abs(state.inf)));
           state.act = act;
-          state.phase = (state.phase + (CFG.drift / 5) * (CRAWL_REST + CRAWL_ACTIVE * act) * STEP) % CRAWL_CYCLE;
-          stepLattice();
+          state.phase = (state.phase + (clamp(cfg.drift, 0, 10) / 5) * (CRAWL_REST + CRAWL_ACTIVE * act) * STEP) % CRAWL_CYCLE;
+          stepLattice(lattice);
         }
 
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const pw = Math.max(1, Math.round(cssW * dpr));
-        const ph = Math.max(1, Math.round(cssH * dpr));
+        const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
+        let scale = dpr * state.quality;
+        const cap = Math.sqrt(PIXEL_CAP / Math.max(1, cssW * cssH));
+        scale = Math.max(1, Math.min(scale, cap));
+        const pw = Math.max(1, Math.round(cssW * scale));
+        const ph = Math.max(1, Math.round(cssH * scale));
         if (canvas.width !== pw || canvas.height !== ph) {
           canvas.width = pw;
           canvas.height = ph;
         }
         gl.viewport(0, 0, pw, ph);
-        uploadLabel(bwPx, bhPx, Math.min(3, dpr * 1.25));
+        drawLabel(bwPx, bhPx, Math.min(3, scale * 1.25));
 
-        const Lt = L.tex;
-        const Lg = L.grad;
-        const hx = L.spanX / (L.nx - 1);
-        const hy = L.spanY / (L.ny - 1);
-        const D3 = L.d;
-        const R1 = L.r;
+        const Lt = lattice.tex;
+        const Lg = lattice.grad;
+        const hx = lattice.spanX / (lattice.nx - 1);
+        const hy = lattice.spanY / (lattice.ny - 1);
+        const D3 = lattice.d;
+        const R1 = lattice.r;
         let maxXY = 0;
-        for (let j = 0; j < L.ny; j++) {
-          for (let i = 0; i < L.nx; i++) {
-            const k = j * L.nx + i;
+        for (let j = 0; j < lattice.ny; j++) {
+          for (let i = 0; i < lattice.nx; i++) {
+            const k = j * lattice.nx + i;
             const il = i > 0 ? k - 1 : k;
-            const ir = i < L.nx - 1 ? k + 1 : k;
-            const ju = j > 0 ? k - L.nx : k;
-            const jd = j < L.ny - 1 ? k + L.nx : k;
+            const ir = i < lattice.nx - 1 ? k + 1 : k;
+            const ju = j > 0 ? k - lattice.nx : k;
+            const jd = j < lattice.ny - 1 ? k + lattice.nx : k;
             const sx = 1 / (hx * (ir - il || 1));
-            const sy = 1 / (hy * ((jd - ju) / L.nx || 1));
+            const sy = 1 / (hy * ((jd - ju) / lattice.nx || 1));
             const exx = (D3[ir * 3] - D3[il * 3]) * sx;
             const eyy = (D3[jd * 3 + 1] - D3[ju * 3 + 1]) * sy;
             const exy = 0.5 * ((D3[jd * 3] - D3[ju * 3]) * sy + (D3[ir * 3 + 1] - D3[il * 3 + 1]) * sx);
@@ -904,17 +889,17 @@
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texGrid);
-        if (firstUpload) {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, L.nx, L.ny, 0, gl.RGBA, gl.FLOAT, Lt);
+        if (firstTex) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, lattice.nx, lattice.ny, 0, gl.RGBA, gl.FLOAT, Lt);
           gl.activeTexture(gl.TEXTURE4);
           gl.bindTexture(gl.TEXTURE_2D, texGrad);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, L.nx, L.ny, 0, gl.RG, gl.FLOAT, Lg);
-          firstUpload = false;
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, lattice.nx, lattice.ny, 0, gl.RG, gl.FLOAT, Lg);
+          firstTex = false;
         } else {
-          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, L.nx, L.ny, gl.RGBA, gl.FLOAT, Lt);
+          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, lattice.nx, lattice.ny, gl.RGBA, gl.FLOAT, Lt);
           gl.activeTexture(gl.TEXTURE4);
           gl.bindTexture(gl.TEXTURE_2D, texGrad);
-          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, L.nx, L.ny, gl.RG, gl.FLOAT, Lg);
+          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, lattice.nx, lattice.ny, gl.RG, gl.FLOAT, Lg);
         }
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, texCloth);
@@ -923,35 +908,35 @@
         gl.activeTexture(gl.TEXTURE3);
         gl.bindTexture(gl.TEXTURE_2D, texLabel);
 
-        const upp = 1 / (bhPx * dpr);
+        const a = cfg.adv;
         gl.uniform2f(loc.uCanvas, pw, ph);
         gl.uniform2f(loc.uOrigin, -cssW / 2 / bhPx, -cssH / 2 / bhPx);
-        gl.uniform1f(loc.uUpp, upp);
+        gl.uniform1f(loc.uUpp, 1 / (bhPx * scale));
         gl.uniform1f(loc.uUcss, 1 / bhPx);
         gl.uniform2f(loc.uHalf, hw, 0.5);
         gl.uniform1f(loc.uRad, rr);
-        gl.uniform4f(loc.uGrid, L.ox, L.oy, L.spanX, L.spanY);
+        gl.uniform4f(loc.uGrid, lattice.ox, lattice.oy, lattice.spanX, lattice.spanY);
         gl.uniform1f(loc.uDeform, maxXY > 1e-6 ? Math.max(maxXY * 1.42, 1e-5) : 0);
         gl.uniform1f(loc.uInflate, REST_PUFF + Math.max(-0.5, state.inf));
         gl.uniform1f(loc.uPhase, state.phase);
         gl.uniform1f(loc.uActive, state.act);
-        gl.uniform1f(loc.uScale, 1 + HOVER_GROW * state.inf - PRESS_SQUASH * Math.max(0, state.press) * (CFG.press / 5));
-        gl.uniform3f(loc.uFabric, fabricLin[0], fabricLin[1], fabricLin[2]);
-        gl.uniform3f(loc.uSheenCol, sheenLin[0], sheenLin[1], sheenLin[2]);
-        gl.uniform3f(loc.uInk, inkLin[0], inkLin[1], inkLin[2]);
+        gl.uniform1f(loc.uScale, 1 + HOVER_GROW * state.inf - PRESS_SQUASH * Math.max(0, state.press) * (clamp(cfg.rs.press, 0, 10) / 5));
+        gl.uniform3f(loc.uFabric, fabric[0], fabric[1], fabric[2]);
+        gl.uniform3f(loc.uSheenCol, sheen[0], sheen[1], sheen[2]);
+        gl.uniform3f(loc.uInk, ink[0], ink[1], ink[2]);
         gl.uniform1f(loc.uInkOn, 1);
 
-        const la = (CFG.lightAngle * Math.PI) / 180;
-        const le = (clamp(CFG.lightHeight, 1, 89) * Math.PI) / 180;
+        const la = ((a.lightAngle - cfg.pl.angle) * Math.PI) / 180;
+        const le = (clamp(a.lightHeight, 1, 89) * Math.PI) / 180;
         gl.uniform3f(loc.uLight, Math.sin(la) * Math.cos(le), -Math.cos(la) * Math.cos(le), Math.sin(le));
-        gl.uniform4f(loc.uLook, CFG.nap / 100, CFG.pile / 100, CFG.wrinkles / 100, CFG.sheen / 100);
-        gl.uniform4f(loc.uEdge, CFG.fuzz, (CFG.hem / 100) * (1 + 0.15 * Math.max(0, state.inf)), CFG.shadow / 100, CFG.glow / 100);
+        gl.uniform4f(loc.uLook, a.nap / 100, a.pile / 100, a.wrinkles / 100, a.sheen / 100);
+        gl.uniform4f(loc.uEdge, Math.max(0, a.fuzz), (Math.max(0, a.hem) / 100) * (1 + 0.15 * Math.max(0, state.inf)), a.shadow / 100, a.glow / 100);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
-        requestAnimationFrame(frame);
+        requestAnimationFrame(tick);
       }
 
-      requestAnimationFrame(frame);
+      requestAnimationFrame(tick);
     })();
   </script>
 </body>

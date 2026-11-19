@@ -18,7 +18,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Inter, system-ui, sans-serif;
     }
 
-    .cascade-stage {
+    .cascade-bg {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -26,26 +26,6 @@
       background:
         radial-gradient(circle at 50% 35%, rgba(255, 224, 250, 0.28) 0%, rgba(74, 34, 118, 0.55) 45%, #090512 100%),
         linear-gradient(160deg, #271247 0%, #0e071d 55%, #050309 100%);
-    }
-
-    .cascade-stage::before {
-      content: "";
-      position: absolute;
-      inset: -15%;
-      background-image:
-        radial-gradient(2px 2px at 18% 24%, rgba(255, 255, 255, 0.92), transparent),
-        radial-gradient(2px 2px at 72% 18%, rgba(255, 210, 255, 0.85), transparent),
-        radial-gradient(3px 3px at 42% 62%, rgba(215, 190, 255, 0.85), transparent),
-        radial-gradient(2px 2px at 84% 74%, rgba(255, 255, 255, 0.9), transparent),
-        radial-gradient(2px 2px at 28% 82%, rgba(240, 195, 255, 0.8), transparent);
-      background-size: 260px 260px;
-      animation: glitterDrift 9s linear infinite;
-      pointer-events: none;
-    }
-
-    @keyframes glitterDrift {
-      from { transform: translateY(0); }
-      to { transform: translateY(130px); }
     }
 
     .venom-stage {
@@ -92,44 +72,37 @@
       outline-offset: 5px;
     }
 
-    .secondary-actions {
+    .meta-links {
       position: relative;
       z-index: 25;
       display: flex;
-      gap: 14px;
-      align-items: center;
+      gap: 12px;
     }
 
-    .windows-link {
+    .pill-link {
       color: #f3e8ff;
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(8px);
-    }
-
-    .windows-link:hover {
-      background: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
 <body>
-  <div class="cascade-stage">
-    <div class="venom-stage" id="venomStage">
-      <canvas id="glCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;" aria-hidden="true"></canvas>
+  <div class="cascade-bg">
+    <div class="venom-stage" id="stage">
+      <canvas id="glc" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;" aria-hidden="true"></canvas>
       <a
-        id="androidBtn"
+        id="btn"
         class="venom-pill"
         href="https://github.com/straitem/App-Blocker/releases/latest/download/App_Blocker.apk"
       >Android download</a>
-      <canvas id="handCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:30;" aria-hidden="true"></canvas>
-
-      <div class="secondary-actions">
-        <a class="windows-link" href="index.html">Back</a>
+      <canvas id="hc" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:30;" aria-hidden="true"></canvas>
+      <div class="meta-links">
+        <a class="pill-link" href="index.html">Back</a>
       </div>
     </div>
   </div>
@@ -142,18 +115,24 @@
       const CUFF_LINES = "M15.4 29.2v5.4M18.7 29.2v5.4M22 29.2v5.4";
       const HOT_X = 11.5, HOT_Y = 1;
       const GRIPS = [[11.5, 3.6], [16.2, 13.2], [20.6, 14], [24.9, 15.8], [5.6, 18], [11.5, 10], [18.5, 22], [18.7, 31.6]];
+      const BANDS = [[0, 5.6], [0, 4.6], [0, 4.6], [0, 4.4], [Math.PI / 4, 4.8], [0, 5.6], [0.08, 11], [0, 15]];
       const MS = 7;
       const NP = 12;
       const MSPK = 8;
       const MDROP = 6;
 
       const PRESET = {
+        background: "#FFFFFF00",
         gooColor: "#3DDC84",
         textColor: "#228B22",
         label: "Android download",
-        reach: 487,
+        size: 100,
         strands: 7,
+        reach: 487,
+        autoplay: true,
         hover: 50,
+        grain: 0,
+        vignette: 0,
         sense: 290,
         release: 215,
         shine: "#EDF0F7",
@@ -182,15 +161,16 @@
         lingerMs: 1700,
         fingerLift: 52,
         ghostDelayMs: 2500,
+        hairs: true,
+        webs: true,
       };
 
-      function hexRgb(hex) {
-        const clean = hex.replace("#", "");
-        return [
-          parseInt(clean.slice(0, 2), 16) / 255,
-          parseInt(clean.slice(2, 4), 16) / 255,
-          parseInt(clean.slice(4, 6), 16) / 255,
-        ];
+      function parseRgb(raw) {
+        const hex = /^#([0-9a-f]{3,8})$/i.exec(raw.trim());
+        if (!hex) return [0.008, 0.008, 0.01];
+        let h = hex[1];
+        if (h.length === 3 || h.length === 4) h = h.slice(0, 3).split("").map((c) => c + c).join("");
+        return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
       }
 
       const mixRgb = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -220,7 +200,6 @@
         float h = clamp(0.5 + 0.5 * (b.x - a.x) / k, 0.0, 1.0);
         return vec2(mix(b.x, a.x, h) - k * h * (1.0 - h), mix(b.y, a.y, h));
       }
-
       float cone(vec2 p, vec2 a, vec2 b, float ra, float rb, out float r){
         vec2 pb = b - a;
         p -= a;
@@ -241,7 +220,6 @@
         if (k > c.x) return sqrt(h * (n + 1.0 - 2.0 * q.y)) - rb;
         return m - ra;
       }
-
       vec2 field(vec2 p){
         float rr = uPill.w * 0.5;
         vec2 c = vec2(uPill.x + uPill.z * 0.5, uPill.y + rr);
@@ -282,9 +260,7 @@
         res.y = max(res.y, body.y * clamp(-body.x / 6.0, 0.0, 1.0));
         return res;
       }
-
       float dist(vec2 p){ return field(p).x; }
-
       float env(vec3 R){
         R.x += uLean * 0.18;
         float up = -R.y;
@@ -296,7 +272,6 @@
         e += smoothstep(0.25, 0.7, R.y) * 1.25;
         return e;
       }
-
       void main(){
         vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
         vec2 f = field(p);
@@ -327,10 +302,10 @@
         gl_FragColor = vec4(col * aa, alpha);
       }`;
 
-      const stage = document.getElementById("venomStage");
-      const btn = document.getElementById("androidBtn");
-      const glc = document.getElementById("glCanvas");
-      const hc = document.getElementById("handCanvas");
+      const stage = document.getElementById("stage");
+      const btn = document.getElementById("btn");
+      const glc = document.getElementById("glc");
+      const hc = document.getElementById("hc");
       const hx = hc.getContext("2d");
       const gl = glc.getContext("webgl", { premultipliedAlpha: true, antialias: false, alpha: true });
 
@@ -358,30 +333,22 @@
       gl.enableVertexAttribArray(aLoc);
       gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
       const quadData = new Float32Array(8);
-      const pts = new Float32Array(MS * NP * 4);
-      const box = new Float32Array(MS * 4);
-      const spk = new Float32Array(MSPK * 4);
-      const spkR = new Float32Array(MSPK * 4);
-      const drp = new Float32Array(MDROP * 4);
+      const pts = new Float32Array(MS * NP * 4), box = new Float32Array(MS * 4);
+      const spk = new Float32Array(MSPK * 4), spkR = new Float32Array(MSPK * 4), drp = new Float32Array(MDROP * 4);
 
-      const gloveP = new Path2D(GLOVE);
-      const gloveL = new Path2D(GLOVE_LINES);
-      const cuffP = new Path2D(CUFF);
-      const cuffL = new Path2D(CUFF_LINES);
+      const gloveP = new Path2D(GLOVE), gloveL = new Path2D(GLOVE_LINES), cuffP = new Path2D(CUFF), cuffL = new Path2D(CUFF_LINES);
       const handClip = new Path2D();
       handClip.addPath(gloveP);
       handClip.addPath(cuffP);
 
       let w = 0, h = 0, dpr = 1;
+      let pressed = false, press = 1, pressV = 0;
       const pill = { x: 0, y: 0, w: 0, h: 0, r: 0, ls: 0, P: 1 };
-      let press = 1, pressV = 0, pressed = false;
 
       function measure() {
         const bw = btn.offsetWidth, bh = btn.offsetHeight;
-        pill.w = bw * press;
-        pill.h = bh * press;
-        pill.x = btn.offsetLeft + (bw - pill.w) / 2;
-        pill.y = btn.offsetTop + (bh - pill.h) / 2;
+        pill.w = bw * press; pill.h = bh * press;
+        pill.x = btn.offsetLeft + (bw - pill.w) / 2; pill.y = btn.offsetTop + (bh - pill.h) / 2;
         pill.r = pill.h / 2;
         pill.ls = Math.max(0, pill.w - pill.h);
         pill.P = 2 * pill.ls + 2 * Math.PI * pill.r || 1;
@@ -428,17 +395,14 @@
 
       function fit() {
         dpr = Math.min(2, window.devicePixelRatio || 1);
-        w = stage.offsetWidth;
-        h = stage.offsetHeight;
-        hc.width = Math.max(1, Math.round(w * dpr));
-        hc.height = Math.max(1, Math.round(h * dpr));
-        glc.width = Math.max(1, Math.round(w * dpr));
-        glc.height = Math.max(1, Math.round(h * dpr));
+        w = stage.offsetWidth; h = stage.offsetHeight;
+        hc.width = Math.max(1, Math.round(w * dpr)); hc.height = Math.max(1, Math.round(h * dpr));
+        glc.width = Math.max(1, Math.round(w * dpr)); glc.height = Math.max(1, Math.round(h * dpr));
         gl.viewport(0, 0, glc.width, glc.height);
         measure();
       }
 
-      const ptr = { x: -999, y: -999, inside: false, last: 0 };
+      const ptr = { x: -999, y: -999, inside: false, last: 0, touch: false, down: false, upAt: 0 };
       let touched = false;
       stage.addEventListener("pointermove", (e) => {
         const rect = stage.getBoundingClientRect();
@@ -454,7 +418,7 @@
       const GHOST = [
         [0.5, 0.8, 1.1], [0.36, 0.74, 1.0], [0.6, 0.82, 0.9], [0.8, 0.64, 0.55], [0.98, 0.97, 1.4],
         [0.86, 0.28, 1.1], [0.7, 0.18, 1.0], [0.5, 0.12, 1.0], [0.3, 0.2, 0.55], [0.03, 0.04, 1.4],
-        [0.16, 0.58, 1.1], [0.32, 0.86, 1.0]
+        [0.16, 0.58, 1.1], [0.32, 0.86, 1.0],
       ];
       const ghostTotal = GHOST.reduce((a, p) => a + p[2], 0);
       function ghostAt(t) {
@@ -476,8 +440,8 @@
       let stretch = 0, mound = 0, moundV = 0, moundS = 0, moundDir = { x: 0, y: 1 }, lean = 0;
       const sc = PRESET.gloveScale / 100;
       const coat = new Float32Array(GRIPS.length);
-      const goo = hexRgb(PRESET.gooColor);
-      const shine = hexRgb(PRESET.shine);
+      const goo = parseRgb(PRESET.gooColor);
+      const shine = parseRgb(PRESET.shine);
 
       const gripAt = (g) => ({ x: hand.x + (g[0] - HOT_X) * sc, y: hand.y + (g[1] - HOT_Y) * sc });
 
@@ -499,6 +463,7 @@
             slack: 1.02 + Math.random() * (hair ? 0.2 : 0.12),
             width: hair ? 0.5 : 0.8 + Math.random() * 0.45,
             grip: g,
+            band: hair ? [0, 0] : BANDS[mi % BANDS.length],
             gi: hair ? -1 : mi % GRIPS.length,
             reachK: hair ? 0.35 : 0.55 + Math.random() * 0.4,
             ex: root.x, ey: root.y,
@@ -526,6 +491,7 @@
         if (!violent) return;
         moundV -= PRESET.recoil;
         const spikeK = PRESET.spikes / 100;
+        const dropP = PRESET.drops / 100;
         const seen = new Set();
         for (const st of list) {
           if (st.hair) continue;
@@ -533,6 +499,11 @@
           if (seen.has(key) || spikes.length >= MSPK) continue;
           seen.add(key);
           if (spikeK > 0) spikes.push({ s: st.s, tilt: (Math.random() - 0.5) * 0.8, len: (10 + Math.random() * 16) * spikeK, age: 0, life: 1.1 + Math.random() * 0.6 });
+          if (Math.random() < dropP && drops.length < MDROP) {
+            const i = 4 + Math.floor(Math.random() * 4);
+            const root = at(st.s);
+            drops.push({ x: st.x[i], y: st.y[i], vx: (root.x - st.x[i]) * 2, vy: (root.y - st.y[i]) * 2 - 40, r: 2 + Math.random() * 2.2, age: 0 });
+          }
         }
       }
 
@@ -553,7 +524,7 @@
         measure();
         const time = (now - t0) / 1000;
 
-        const ghost = !touched || (!ptr.inside && now - ptr.last > PRESET.ghostDelayMs);
+        const ghost = PRESET.autoplay && (!touched || (!ptr.inside && now - ptr.last > PRESET.ghostDelayMs));
         let present = ptr.inside;
         if (ghost) { hand = ghostAt(time); present = true; } else hand = { x: ptr.x, y: ptr.y };
         stage.style.cursor = !ghost && present ? "none" : "";
@@ -648,6 +619,13 @@
               st.x[i + 1] -= dx * diff * (b / m); st.y[i + 1] -= dy * diff * (b / m);
             }
           }
+          for (let pass = 0; pass < 2; pass++) {
+            for (let i = 1; i < NP - 1; i++) {
+              if (pinTip && i === NP - 1) continue;
+              st.x[i] += ((st.x[i - 1] + st.x[i + 1]) / 2 - st.x[i]) * 0.22;
+              st.y[i] += ((st.y[i - 1] + st.y[i + 1]) / 2 - st.y[i]) * 0.22;
+            }
+          }
         }
         if (mode === "snap" && alive === 0) { mode = "idle"; list = []; webs = []; }
 
@@ -665,8 +643,18 @@
           spikes[k].age += dt;
           if (spikes[k].age > spikes[k].life) spikes.splice(k, 1);
         }
+        for (let k = drops.length - 1; k >= 0; k--) {
+          const d = drops[k];
+          d.age += dt;
+          d.vy += 520 * dt;
+          d.vx *= Math.exp(-dt * 2); d.vy *= Math.exp(-dt * 1);
+          d.x += d.vx * dt; d.y += d.vy * dt;
+          d.r *= Math.exp(-dt * 1.5);
+          if (d.age > 0.9 || nearest(d.x, d.y).dist < -d.r) drops.splice(k, 1);
+        }
 
         const thin = 1 - (PRESET.stretchThin / 100) * stretch;
+        const widthK = PRESET.strandWidth / 100;
         const mains = list.filter((s) => !s.hair).slice(0, MS);
         let minX = pill.x, minY = pill.y, maxX = pill.x + pill.w, maxY = pill.y + pill.h;
         const grow2 = seeking ? 0.55 + 0.45 * seekF : 1;
@@ -674,7 +662,7 @@
           let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
           for (let i = 0; i < NP; i++) {
             const f = i / (NP - 1);
-            let r = st.width * (3.0 - 1.9 * f) * thin * grow2;
+            let r = st.width * (3.0 - 1.9 * f) * thin * grow2 * widthK;
             if (holding) r *= 1 + (PRESET.pulse / 100) * Math.sin(f * 9 - time * 6 + st.phase) * Math.sin(f * Math.PI);
             if (mode === "snap") r *= 1.15;
             const o = (si * NP + i) * 4;
@@ -700,7 +688,12 @@
           spkR[k * 4] = 2.6 * Math.min(1, up + 0.2); spkR[k * 4 + 1] = len > 0.6 ? 1 : 0;
           minX = Math.min(minX, tx); maxX = Math.max(maxX, tx); minY = Math.min(minY, ty); maxY = Math.max(maxY, ty);
         });
+
         drp.fill(0);
+        drops.forEach((d, k) => {
+          drp[k * 4] = d.x; drp[k * 4 + 1] = d.y; drp[k * 4 + 2] = d.r; drp[k * 4 + 3] = 1;
+          minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x); minY = Math.min(minY, d.y); maxY = Math.max(maxY, d.y);
+        });
 
         const me = at(moundS);
         const mlen = Math.max(0, mound);
@@ -747,17 +740,19 @@
         hx.lineJoin = "round";
 
         if (list.length && (holding || mode === "snap")) {
-          hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.01), 0.9);
-          for (const st of list) {
-            if (!st.hair) continue;
-            hx.lineWidth = 0.7 * thin;
-            hx.beginPath();
-            hx.moveTo(st.x[0], st.y[0]);
-            for (let i = 1; i < NP - 1; i++) hx.quadraticCurveTo(st.x[i], st.y[i], (st.x[i] + st.x[i + 1]) / 2, (st.y[i] + st.y[i + 1]) / 2);
-            hx.lineTo(st.x[NP - 1], st.y[NP - 1]);
-            hx.stroke();
+          if (PRESET.hairs) {
+            hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.01), 0.9);
+            for (const st of list) {
+              if (!st.hair) continue;
+              hx.lineWidth = 0.7 * thin * widthK;
+              hx.beginPath();
+              hx.moveTo(st.x[0], st.y[0]);
+              for (let i = 1; i < NP - 1; i++) hx.quadraticCurveTo(st.x[i], st.y[i], (st.x[i] + st.x[i + 1]) / 2, (st.y[i] + st.y[i + 1]) / 2);
+              hx.lineTo(st.x[NP - 1], st.y[NP - 1]);
+              hx.stroke();
+            }
           }
-          if (mode === "hold") {
+          if (mode === "hold" && PRESET.webs) {
             hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.03), 0.6);
             hx.lineWidth = 0.5;
             for (const [a, b, i, j, kink] of webs) {
@@ -779,16 +774,12 @@
           hx.save();
           hx.translate(2.5, 4.5);
           hx.fillStyle = "rgba(0,0,0,0.15)";
-          hx.fill(gloveP);
-          hx.fill(cuffP);
+          hx.fill(gloveP); hx.fill(cuffP);
           hx.restore();
           hx.fillStyle = "#ffffff";
-          hx.fill(cuffP);
-          hx.fill(gloveP);
+          hx.fill(cuffP); hx.fill(gloveP);
           if (coat.some((c) => c > 0.01)) {
-            const skinHi = cssRgb(mixRgb(goo, shine, 0.33));
-            const skinMid = cssRgb(mixRgb(goo, shine, 0.06));
-            const skinLo = cssRgb(goo);
+            const skinHi = cssRgb(mixRgb(goo, shine, 0.33)), skinMid = cssRgb(mixRgb(goo, shine, 0.06)), skinLo = cssRgb(goo);
             hx.save();
             hx.clip(handClip);
             for (let g = 0; g < coat.length; g++) {
@@ -796,8 +787,7 @@
               if (c < 0.01) continue;
               const e = c * c * (3 - 2 * c);
               const [gx0, gy0] = GRIPS[g];
-              const cx0 = gx0 + (17 - gx0) * e * 0.35;
-              const cy0 = gy0 + (20 - gy0) * e * 0.35;
+              const cx0 = gx0 + (17 - gx0) * e * 0.35, cy0 = gy0 + (20 - gy0) * e * 0.35;
               const R = 2.4 + e * 7.5;
               hx.beginPath();
               for (let k = 0; k <= 28; k++) {
@@ -825,12 +815,37 @@
           hx.restore();
         }
 
-        requestAnimationFrame(frame);
+        if (holding && list.length) {
+          hx.lineCap = "round";
+          hx.lineJoin = "round";
+          hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.005));
+          for (const st of list) {
+            const gp = gripAt(st.grip);
+            const gap = Math.hypot(st.ex - gp.x, st.ey - gp.y);
+            const on = Math.max(0, Math.min(1, 1 - gap / 14));
+            if (on <= 0) continue;
+            const from = NP - 4;
+            hx.globalAlpha = on;
+            for (let i = from; i < NP - 1; i++) {
+              const f = i / (NP - 1);
+              hx.lineWidth = Math.max(0.6, st.width * (3.0 - 1.9 * f) * thin * 2 * widthK) * (st.hair ? 0.45 : 1);
+              const x0 = i === from ? st.x[i] : (st.x[i - 1] + st.x[i]) / 2, y0 = i === from ? st.y[i] : (st.y[i - 1] + st.y[i]) / 2;
+              const last = i === NP - 2;
+              hx.beginPath();
+              hx.moveTo(x0, y0);
+              hx.quadraticCurveTo(st.x[i], st.y[i], last ? st.x[NP - 1] : (st.x[i] + st.x[i + 1]) / 2, last ? st.y[NP - 1] : (st.y[i] + st.y[i + 1]) / 2);
+              hx.stroke();
+            }
+            hx.globalAlpha = 1;
+          }
+        }
+
+        requestAnimationFrame(draw);
       }
 
       new ResizeObserver(fit).observe(stage);
       fit();
-      requestAnimationFrame(frame);
+      requestAnimationFrame(draw);
     })();
   </script>
 </body>
