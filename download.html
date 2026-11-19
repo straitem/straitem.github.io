@@ -1,749 +1,835 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Download – ScreenTime</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download — GlimmerVale</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body {
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    html, body {
       width: 100%;
       height: 100%;
-      background: #000;
-      color: #fff;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Inter, system-ui, sans-serif;
     }
-    a { color: inherit; text-decoration: none; }
-    .page {
+
+    .cascade-stage {
       position: relative;
-      width: 100%;
+      width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: #000;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 224, 250, 0.28) 0%, rgba(74, 34, 118, 0.55) 45%, #090512 100%),
+        linear-gradient(160deg, #271247 0%, #0e071d 55%, #050309 100%);
     }
-    .layer { position: absolute; inset: 0; }
-    .overlay {
+
+    .cascade-stage::before {
+      content: "";
       position: absolute;
-      inset: 0;
-      z-index: 10;
+      inset: -15%;
+      background-image:
+        radial-gradient(2px 2px at 18% 24%, rgba(255, 255, 255, 0.92), transparent),
+        radial-gradient(2px 2px at 72% 18%, rgba(255, 210, 255, 0.85), transparent),
+        radial-gradient(3px 3px at 42% 62%, rgba(215, 190, 255, 0.85), transparent),
+        radial-gradient(2px 2px at 84% 74%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(2px 2px at 28% 82%, rgba(240, 195, 255, 0.8), transparent);
+      background-size: 260px 260px;
+      animation: glitterDrift 9s linear infinite;
       pointer-events: none;
     }
-    .overlay .btn,
-    .overlay .back { pointer-events: auto; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px 34px;
-      border-radius: 999px;
-      font-size: 18px;
-      font-weight: 600;
-      color: #000;
-      background: #fff;
-      border: 2px solid #fff;
-      cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease;
+
+    @keyframes glitterDrift {
+      from { transform: translateY(0); }
+      to { transform: translateY(130px); }
     }
-    .btn:hover { transform: scale(1.04); background: #e8e8e8; }
-    .btn:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
-    .btn.disabled {
-      background: transparent;
-      color: #ffffffb0;
-      border-color: #ffffff55;
-      cursor: not-allowed;
-    }
-    .btn.disabled:hover { transform: none; background: transparent; }
-    .back {
-      position: absolute;
-      top: 24px;
-      left: 24px;
-      font-size: 16px;
-      color: #ffffffcc;
-    }
-    .back:hover { color: #fff; }
-    .download-row {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 6vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 28px;
-      padding: 0 20px;
-    }
-    .download-item {
+
+    .venom-stage {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      gap: 24px;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: pan-y;
     }
-    .soon {
+
+    .venom-pill {
+      position: relative;
+      z-index: 20;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 100px;
+      padding: 0 56px;
+      border-radius: 9999px;
+      border: 0;
+      margin: 0;
+      color: #228B22;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Inter, system-ui, sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      white-space: nowrap;
+      text-decoration: none;
+      transform-origin: 50% 50%;
+      -webkit-tap-highlight-color: transparent;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.75), 0 -0.5px 0 rgba(255, 255, 255, 0.25);
+      outline: none;
+    }
+
+    .venom-pill:focus-visible {
+      outline: 3px solid rgba(255, 255, 255, 0.35);
+      outline-offset: 5px;
+    }
+
+    .secondary-actions {
+      position: relative;
+      z-index: 25;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .windows-link {
+      color: #f3e8ff;
+      text-decoration: none;
       font-size: 14px;
-      color: #ffffffb0;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(8px);
     }
-    @media (max-width: 560px) {
-      .download-row { flex-direction: column; align-items: center; gap: 18px; }
-      .download-item { flex-direction: column-reverse; }
+
+    .windows-link:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
 <body>
-  <main class="page">
-    <div class="layer" id="cascade-root"></div>
+  <div class="cascade-stage">
+    <div class="venom-stage" id="venomStage">
+      <canvas id="glCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;" aria-hidden="true"></canvas>
+      <a
+        id="androidBtn"
+        class="venom-pill"
+        href="https://github.com/straitem/App-Blocker/releases/latest/download/App_Blocker.apk"
+      >Android download</a>
+      <canvas id="handCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:30;" aria-hidden="true"></canvas>
 
-    <div class="overlay">
-      <a href="index.html" class="back">Back</a>
-
-      <!-- Bottom row: Windows on the left, Android on the right -->
-      <div class="download-row">
-        <div class="download-item">
-          <span class="btn disabled" aria-disabled="true">
-            Download for Windows
-          </span>
-          <span class="soon">Coming soon</span>
-        </div>
-
-        <div class="download-item">
-          <a
-            href="https://github.com/straitem/App-Blocker/releases/latest/download/App_Blocker.apk"
-            class="btn"
-          >
-            Download for Android
-          </a>
-        </div>
+      <div class="secondary-actions">
+        <a class="windows-link" href="index.html">Back</a>
       </div>
     </div>
-  </main>
+  </div>
 
   <script>
     (function () {
-      const ADVANCED_DEFAULTS = {
-        fallSpeed: 9, fallSpread: 63, drift: 3, topWidth: 89, coreDensity: 76,
-        topBoost: 266, topDepth: 57, stray: 9, flakeSize: 4, sizeVariance: 60,
-        flakeBright: 120, shimmer: 30, warmShare: 6, glintLife: 450, glintRise: 150,
-        glintArm: 34, glintCore: 3, glintHalo: 12, glintBright: 100, glintWarm: 7,
-        haze: 85, hazeWidth: 86, hazeDepth: 22, hazeLow: "#3A2A6A",
-        flakeLav: "#AE89B5", flakePink: "#E070D0", flakeBlue: "#A0B0FF",
-        flakeWarm: "#E8A080", glintPink: "#FF7AD0", glintBlue: "#8A8AFF",
-        pushRadius: 12, seed: 1, hover: 66, grain: 0, vignette: 0,
+      const GLOVE = "M9 14V3.6a2.5 2.5 0 0 1 5 0V12.2a2.2 2.2 0 0 1 4.4 0.4a2.2 2.2 0 0 1 4.4 0.8a2.2 2.2 0 0 1 4.2 1.6V22c0 4-2.6 7-6 7H14.6c-3 0-5.4-1.8-6.6-4.4L4.1 18.6a2.3 2.3 0 0 1 3.6-2.8L9 17.4Z";
+      const GLOVE_LINES = "M18.4 12.6V17.2M22.8 13.4V17.6M14 12.2V16.6";
+      const CUFF = "M12.6 28.6h12.2a1.6 1.6 0 0 1 1.6 1.6v3.4a1.6 1.6 0 0 1-1.6 1.6H12.6a1.6 1.6 0 0 1-1.6-1.6v-3.4a1.6 1.6 0 0 1 1.6-1.6Z";
+      const CUFF_LINES = "M15.4 29.2v5.4M18.7 29.2v5.4M22 29.2v5.4";
+      const HOT_X = 11.5, HOT_Y = 1;
+      const GRIPS = [[11.5, 3.6], [16.2, 13.2], [20.6, 14], [24.9, 15.8], [5.6, 18], [11.5, 10], [18.5, 22], [18.7, 31.6]];
+      const MS = 7;
+      const NP = 12;
+      const MSPK = 8;
+      const MDROP = 6;
+
+      const PRESET = {
+        gooColor: "#3DDC84",
+        textColor: "#228B22",
+        label: "Android download",
+        reach: 487,
+        strands: 7,
+        hover: 50,
+        sense: 290,
+        release: 215,
+        shine: "#EDF0F7",
+        rim: 100,
+        glint: 100,
+        shadow: 20,
+        gloveScale: 155,
+        pressScale: 96,
+        strandWidth: 100,
+        pulse: 24,
+        stretchThin: 50,
+        gravity: 260,
+        damping: 92,
+        snapDamping: 86,
+        sway: 14,
+        dart: 28,
+        lungeMs: 300,
+        coil: 13,
+        coilAngle: 468,
+        mound: 100,
+        recoil: 90,
+        spikes: 100,
+        drops: 0,
+        skinInMs: 2000,
+        skinOutMs: 700,
+        lingerMs: 1700,
+        fingerLift: 52,
+        ghostDelayMs: 2500,
       };
 
-      const REF_ASPECT = 1200 / 800;
-      const MAX_DPR = 2;
-      const MAX_PIXELS = 4.2e6;
-      const LADDER = [1, 0.85, 0.72, 0.6];
-      const HASH_ROWS = 4096;
-      const FLAKE_ROW = 0.03;
-      const GLINT_ROW = 0.11;
-      const TIME_WRAP = 20 * Math.PI * 16;
-
-      function num(v, d) {
-        return typeof v === "number" && Number.isFinite(v) ? v : d;
-      }
-      function clamp(v, lo, hi) {
-        return Math.max(lo, Math.min(hi, v));
-      }
-      function parseHexRGB(hex, fallback) {
-        if (typeof hex !== "string") return fallback;
-        const s = hex.trim();
-        if (s[0] !== "#") return fallback;
-        const h = s.slice(1);
-        let r, g, b;
-        if (h.length === 3 || h.length === 4) {
-          r = parseInt(h[0] + h[0], 16);
-          g = parseInt(h[1] + h[1], 16);
-          b = parseInt(h[2] + h[2], 16);
-        } else if (h.length >= 6) {
-          r = parseInt(h.slice(0, 2), 16);
-          g = parseInt(h.slice(2, 4), 16);
-          b = parseInt(h.slice(4, 6), 16);
-        } else return fallback;
-        if (![r, g, b].every(Number.isFinite)) return fallback;
-        return [r / 255, g / 255, b / 255];
-      }
-      function dirFrame(dir, aspect) {
-        const h = aspect / 2;
-        switch (dir) {
-          case "up": return { m: [1, 0, 0, -1], o: [0, 1] };
-          case "right": return { m: [0, 1, 1, 0], o: [-0.5, h] };
-          case "left": return { m: [0, 1, -1, 0], o: [-0.5, h] };
-          default: return { m: [1, 0, 0, 1], o: [0, 0] };
-        }
+      function hexRgb(hex) {
+        const clean = hex.replace("#", "");
+        return [
+          parseInt(clean.slice(0, 2), 16) / 255,
+          parseInt(clean.slice(2, 4), 16) / 255,
+          parseInt(clean.slice(4, 6), 16) / 255,
+        ];
       }
 
-      const GLSL_COMMON = `#version 300 es
-      precision highp float;
-      precision highp int;
+      const mixRgb = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+      const cssRgb = (c, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`;
+
+      const VERT = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
+      const FRAG = `precision highp float;
       uniform vec2 uRes;
-      uniform float uTime;
-      uniform vec2 uMouse;
-      uniform float uHover;
-      uniform vec3 uBg;
+      uniform float uDpr;
+      uniform vec4 uPill;
+      uniform vec4 uPts[${MS * NP}];
+      uniform vec4 uBox[${MS}];
+      uniform float uCount;
+      uniform vec4 uSpk[${MSPK}];
+      uniform vec4 uSpkR[${MSPK}];
+      uniform vec4 uDrop[${MDROP}];
+      uniform vec4 uMound;
+      uniform vec2 uMoundR;
+      uniform float uLean;
       uniform vec3 uBase;
-      uniform vec3 uAccent;
-      uniform float uScale;
-      uniform float uDensity, uWTop, uWBot, uGlintRate, uHoverAmt;
-      uniform float uFall, uFallSpread, uDrift, uCoreDen, uTopBoost, uTopDepth, uStray;
-      uniform float uFlakeR, uSizeVar, uFlakeBright, uShimmer, uWarmShare;
-      uniform float uGlintLife, uGlintRise, uGlintArm, uGlintCore, uGlintHalo, uGlintBright, uGlintWarm;
-      uniform float uHaze, uHazeW, uHazeDepth;
-      uniform vec3 uHazeLow, uLav, uPink, uBlue, uWarm, uGPink, uGBlue;
-      uniform float uPushR, uPush, uSeed, uGrain, uVignette;
-      uniform vec4 uScroll;
-      uniform float uGScroll, uGPhase;
-      uniform vec4 uDir;
-      uniform vec2 uDirO;
+      uniform vec3 uShine;
+      uniform float uRim;
+      uniform float uGlint;
+      uniform float uShadow;
 
-      const int OFS = 1048576;
-
-      uvec3 pcg3(uvec3 v) {
-          v = v * 1664525u + 1013904223u;
-          v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
-          v ^= v >> 16u;
-          v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
-          return v;
-      }
-      vec3 rnd3(ivec3 c) { return vec3(pcg3(uvec3(c))) * (1.0 / 4294967295.0); }
-      float wAt(float y) { return max(mix(uWTop, uWBot, clamp(y, 0.0, 3.0)), 1e-3); }
-      int wrapRow(int y) { return ((y + 2048) & 4095) - 2048; }
-      float sceneScale() { return max(uScale, 0.05); }
-      vec2 dirFwd(vec2 f) { return vec2(uDir.x * f.x + uDir.y * f.y, uDir.z * f.x + uDir.w * f.y) + uDirO; }
-      vec2 dirInv(vec2 q) { q -= uDirO; return vec2(uDir.x * q.x + uDir.z * q.y, uDir.y * q.x + uDir.w * q.y); }
-      vec2 toScene(vec2 fc) {
-          float Hp = max(uRes.y, 1.0);
-          return dirFwd(vec2((fc.x - 0.5 * uRes.x) / Hp, (uRes.y - fc.y) / Hp)) / sceneScale();
-      }
-      vec2 toFrag(vec2 p) {
-          float Hp = max(uRes.y, 1.0);
-          vec2 f = dirInv(p * sceneScale()) * Hp;
-          return vec2(f.x + 0.5 * uRes.x, uRes.y - f.y);
-      }
-      float pxSize() { return 1.0 / (max(uRes.y, 1.0) * sceneScale()); }
-      vec2 mouseScene() {
-          float Hp = max(uRes.y, 1.0);
-          return dirFwd(vec2((uMouse.x - 0.5) * uRes.x / Hp, 1.0 - uMouse.y)) / sceneScale();
-      }
-      float vignette(vec2 fc) {
-          if (uVignette <= 0.0) return 1.0;
-          float Hp = max(uRes.y, 1.0);
-          vec2 vc = (fc / uRes - 0.5) * vec2(uRes.x / Hp, 1.0);
-          return 1.0 - uVignette * smoothstep(0.35, 1.0, length(vc) * 1.1);
-      }
-      void pushed(vec2 X, out vec2 P, out float J, out float K, out float near) {
-          float hv = uHover * uHoverAmt;
-          P = X; J = 1.0; K = 0.0; near = 0.0;
-          if (hv <= 0.0) return;
-          vec2 d = X - mouseScene();
-          near = hv * exp(-dot(d, d) / max(uPushR * uPushR, 1e-5));
-      }
-      vec4 corner(vec2 P, float hx, float hy, int k) {
-          vec2 c = vec2((k == 1 || k == 4 || k == 5) ? 1.0 : -1.0, (k == 2 || k == 3 || k == 5) ? 1.0 : -1.0);
-          vec2 fc = toFrag(P + c * vec2(hx, hy));
-          return vec4(fc / max(uRes, vec2(1.0)) * 2.0 - 1.0, 0.0, 1.0);
-      }`;
-
-      const VERT_FULL = `#version 300 es
-      void main() {
-          vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-          gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
-      }`;
-
-      const FRAG_BASE = GLSL_COMMON + `
-      out vec4 outColor;
-      vec3 haze(vec2 p, float t) {
-          float y = max(p.y, 0.0);
-          float sig = uHazeW * (1.0 - 0.25 * clamp(y, 0.0, 1.0));
-          float ix = exp(-p.x * p.x / max(2.0 * sig * sig, 1e-6));
-          float iy = exp(-y / max(uHazeDepth, 1e-3));
-          float trail = exp(-y / max(uHazeDepth * 2.2, 1e-3)) * 0.18;
-          vec3 c = mix(uBase, uHazeLow, smoothstep(0.05, 0.5, y));
-          float breathe = 1.0 + 0.07 * sin(t * 0.9) + 0.03 * sin(t * 2.3 + 1.0);
-          vec3 col = c * ix * (iy + trail) * breathe;
-          float sc = sig * 0.6;
-          col += mix(uLav, uAccent, 0.3) * exp(-p.x * p.x / max(2.0 * sc * sc, 1e-6)) * exp(-y / 0.035) * 0.35;
-          return col * uHaze;
-      }
-      void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 p = toScene(fc);
-          vec2 dm = p - mouseScene();
-          float near = uHover * uHoverAmt * exp(-dot(dm, dm) / max(uPushR * uPushR, 1e-5));
-          vec3 col = uBg + haze(p, uTime) + uAccent * near * 0.04;
-          outColor = vec4(clamp(col * vignette(fc), 0.0, 1.0), 1.0);
-      }`;
-
-      const VERT_FLAKE = GLSL_COMMON + `
-      layout(location = 0) in ivec4 aRow;
-      flat out vec4 vPush;
-      flat out vec4 vShape;
-      flat out vec2 vWarp;
-      flat out vec3 vCol;
-      void main() {
-          int col = gl_VertexID / 6;
-          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-          if (col >= aRow.w) return;
-          const float cu = 0.16;
-          const float cy = 0.03;
-          int sd = int(uSeed) * 131;
-          int L = aRow.x;
-          ivec2 c = ivec2(aRow.z + col, aRow.y);
-          float fl = float(L);
-          float v = max(uFall * (1.0 + (fl - 1.5) / 1.5 * uFallSpread), 1e-3);
-          float sz = 0.75 + 0.2 * fl;
-          float lb = 0.6 + 0.14 * fl;
-          vec2 sh = vec2(fl * 0.37, fl * 0.61);
-          int wy = wrapRow(c.y);
-          vec3 r = rnd3(ivec3(c.x + OFS, wy + OFS, L * 7919 + sd));
-          float u0 = (float(c.x) + 0.15 + 0.7 * r.x - sh.x) * cu;
-          float yy0 = (float(c.y) + 0.15 + 0.7 * r.y - sh.y) * cy;
-          float y0 = yy0 + uScroll[L];
-          float top = 1.0 - smoothstep(0.0, uTopDepth, y0);
-          float ex = uCoreDen * exp(-1.2 * u0 * u0) * (1.0 + uTopBoost * top)
-                   + uStray * exp(-max(abs(u0) - 1.5, 0.0));
-          ex *= uDensity;
-          if (r.z > ex) return;
-          float x0 = u0 * wAt(y0) - uDrift * y0 / v;
-          float px = pxSize();
-          vec3 r2 = rnd3(ivec3(wy + OFS, c.x + OFS, L * 7919 + 4099 + sd));
-          float rad = uFlakeR * sz * mix(1.0 - uSizeVar * 0.4, 1.0 + uSizeVar, r2.x * r2.x) * (1.0 + 0.4 * top);
-          float rr = max(rad, 0.6 * px);
-          float reach = rr * 1.8 + 2.0 * px;
-          float an = r2.y * 6.2832;
-          vec3 r3 = rnd3(ivec3(c.x + OFS, wy + OFS, L * 7919 + 8191 + sd));
-          float k = r3.x;
-          vec3 colr;
-          if (k < 0.38) colr = uAccent;
-          else if (k < 0.58) colr = uLav;
-          else if (k < 0.70) colr = uPink;
-          else if (k < 0.80) colr = mix(uBase, uLav, 0.5);
-          else if (k < 0.90) colr = uBlue;
-          else if (k < 1.0 - uWarmShare) colr = uBase * 1.4;
-          else colr = uWarm;
-          float bright = mix(0.3, 1.0, r3.y) * lb * uFlakeBright;
-          float sm = (1.0 + uShimmer * sin(uTime * (10.0 + 20.0 * r3.z) + r3.x * 40.0)) / (1.0 + uShimmer);
-          vec2 P; float J; float K; float near;
-          pushed(vec2(x0, y0), P, J, K, near);
-          float tw = 0.5 + 0.5 * sin(uTime * (14.0 + 26.0 * r3.z) + r3.y * 50.0);
-          float blink = tw * tw * tw * tw;
-          vCol = colr * bright * sm * mix(1.0, 0.3 + 3.4 * blink, clamp(near, 0.0, 1.0));
-          vPush = vec4(P, J, K);
-          vShape = vec4(rr, reach, cos(an), sin(an));
-          vWarp = vec2(1.0 + 0.6 * r2.z, r.x * 20.0);
-          float lit = min(reach, (rr + px) / 0.82) + px;
-          gl_Position = corner(P, lit * (1.0 + abs(K)) / max(J, 0.3), lit, gl_VertexID - col * 6);
-      }`;
-
-      const FRAG_FLAKE = GLSL_COMMON + `
-      flat in vec4 vPush;
-      flat in vec4 vShape;
-      flat in vec2 vWarp;
-      flat in vec3 vCol;
-      out vec4 outColor;
-      void main() {
-          vec2 fc = gl_FragCoord.xy;
-          float px = pxSize();
-          vec2 dp = toScene(fc) - vPush.xy;
-          vec2 d = vec2(dp.x * vPush.z + dp.y * vPush.w, dp.y);
-          float rr = vShape.x;
-          float reach = vShape.y;
-          if (dot(d, d) > reach * reach) discard;
-          vec2 e = mat2(vShape.z, vShape.w, -vShape.w, vShape.z) * d;
-          e.y *= vWarp.x;
-          float ang = atan(e.y, e.x);
-          float dd = length(e) * (1.0 + 0.18 * sin(3.0 * ang + vWarp.y));
-          float a = 1.0 - smoothstep(rr - 0.5 * px, rr + px, dd);
-          if (a <= 0.0) discard;
-          outColor = vec4(vCol * a * vignette(fc), 0.0);
-      }`;
-
-      const VERT_GLINT = GLSL_COMMON + `
-      layout(location = 0) in ivec4 aRow;
-      flat out vec4 vPush;
-      flat out vec4 vShape;
-      flat out vec3 vTint;
-      void main() {
-          int col = gl_VertexID / 6;
-          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-          if (col >= aRow.w || uGlintRate <= 0.0) return;
-          const float cu = 0.55;
-          const float cy = 0.11;
-          int sd = int(uSeed) * 131;
-          float v = max(uFall, 1e-3);
-          float P = 35.0 / max(uGlintRate, 0.5);
-          ivec2 c = ivec2(aRow.z + col, aRow.y);
-          int wy = wrapRow(c.y);
-          vec3 r = rnd3(ivec3(c.x + OFS, wy + OFS, 991 + sd));
-          float ph = uGPhase + r.y;
-          float k = floor(ph);
-          int kk = int(k) & 4095;
-          float lt = fract(ph) * P;
-          vec3 q = rnd3(ivec3(c.x + OFS, wy + OFS, kk * 3 + 77777 + sd));
-          float life = uGlintLife * mix(0.67, 1.33, q.z);
-          if (lt > life) return;
-          float u0 = (float(c.x) + 0.1 + 0.8 * q.x) * cu;
-          float yy0 = (float(c.y) + 0.1 + 0.8 * q.y) * cy;
-          float y0 = yy0 + uGScroll;
-          float x0 = u0 * wAt(y0) - uDrift * y0 / v;
-          float act = exp(-0.45 * u0 * u0) * mix(0.5, 1.0, smoothstep(0.3, 1.0, abs(u0)));
-          if (r.x > act) return;
-          float px = pxSize();
-          vec3 q2 = rnd3(ivec3(wy + OFS, c.x + OFS, kk * 3 + 33331 + sd));
-          float rise = min(uGlintRise, life * 0.6);
-          float env = lt < rise ? smoothstep(0.0, 1.0, lt / rise)
-                                : pow(max(0.0, 1.0 - (lt - rise) / max(life - rise, 1e-3)), 2.0);
-          float Lr = uGlintArm * 0.5 * (0.8 + 0.2 * env) * mix(0.75, 1.2, q2.x);
-          float bound = max(Lr, uGlintHalo * 3.0) + 2.0 * px;
-          vec3 tint;
-          if (q2.y < uGlintWarm) tint = mix(uWarm, vec3(1.0, 0.45, 0.25), 0.5);
-          else if (q2.y < 0.4) tint = uGBlue;
-          else if (q2.y < 0.7) tint = uGPink;
-          else tint = mix(uAccent, vec3(0.78, 0.72, 1.0), 0.5);
-          vec2 Pp; float J; float K; float near;
-          pushed(vec2(x0, y0), Pp, J, K, near);
-          float gb = 0.5 + 0.5 * sin(uTime * 40.0 + q2.x * 30.0);
-          float bright = mix(0.65, 1.0, q2.z) * uGlintBright * env * mix(1.0, 0.35 + 1.6 * gb * gb, clamp(near, 0.0, 1.0));
-          vPush = vec4(Pp, J, K);
-          vShape = vec4(Lr, bound, bright, 1.0);
-          vTint = tint;
-          gl_Position = corner(Pp, bound * (1.0 + abs(K)) / max(J, 0.3) + px, bound + px, gl_VertexID - col * 6);
-      }`;
-
-      const FRAG_GLINT = GLSL_COMMON + `
-      flat in vec4 vPush;
-      flat in vec4 vShape;
-      flat in vec3 vTint;
-      out vec4 outColor;
-      void main() {
-          vec2 fc = gl_FragCoord.xy;
-          float px = pxSize();
-          vec2 dp = toScene(fc) - vPush.xy;
-          vec2 d = vec2(dp.x * vPush.z + dp.y * vPush.w, dp.y);
-          float Lr = vShape.x;
-          if (max(abs(d.x), abs(d.y)) > vShape.y) discard;
-          float th = 0.7 * px + 0.0006;
-          float armH = pow(max(0.0, 1.0 - abs(d.x) / max(Lr, 1e-4)), 2.0) * exp(-(d.y * d.y) / (th * th));
-          float armV = pow(max(0.0, 1.0 - abs(d.y) / max(Lr, 1e-4)), 2.0) * exp(-(d.x * d.x) / (th * th));
-          float r2 = dot(d, d);
-          float core = exp(-r2 / max(uGlintCore * uGlintCore, 1e-8));
-          float halo = exp(-r2 / max(uGlintHalo * uGlintHalo, 1e-8));
-          vec3 tint = vTint;
-          vec3 acc = vShape.z * (vec3(1.0) * core * 1.2 + mix(vec3(1.0), tint, 0.5) * (armH + armV) * 0.9 + tint * halo * 0.45 * vShape.w);
-          outColor = vec4(acc * vignette(fc), 0.0);
-      }`;
-
-      const FRAG_GRAIN = GLSL_COMMON + `
-      uniform float uSign;
-      out vec4 outColor;
-      void main() {
-          vec2 fc = gl_FragCoord.xy;
-          float gn = float(pcg3(uvec3(uvec2(fc), uint(uTime * 60.0))).x) / 4294967295.0 - 0.5;
-          outColor = vec4(vec3(max(gn * uSign, 0.0) * uGrain * 0.22), 0.0);
-      }`;
-
-      function buildGL(gl) {
-        const sh = (type, src) => {
-          const s = gl.createShader(type);
-          if (!s) return null;
-          gl.shaderSource(s, src);
-          gl.compileShader(s);
-          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) return null;
-          return s;
-        };
-        const link = (vsSrc, fsSrc) => {
-          const vs = sh(gl.VERTEX_SHADER, vsSrc);
-          const fs = sh(gl.FRAGMENT_SHADER, fsSrc);
-          const prog = gl.createProgram();
-          if (!vs || !fs || !prog) return null;
-          gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-          gl.deleteShader(vs); gl.deleteShader(fs);
-          if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
-          const cache = new Map();
-          const u = (name) => {
-            if (!cache.has(name)) cache.set(name, gl.getUniformLocation(prog, name));
-            return cache.get(name) ?? null;
-          };
-          return {
-            prog, u,
-            loc: {
-              res: u("uRes"), time: u("uTime"), scroll: u("uScroll"), gScroll: u("uGScroll"), gPhase: u("uGPhase"),
-              mouse: u("uMouse"), hover: u("uHover"), scale: u("uScale"), bg: u("uBg"), base: u("uBase"),
-              accent: u("uAccent"), sign: u("uSign"),
-            },
-          };
-        };
-        const rows = () => {
-          const vao = gl.createVertexArray();
-          const buf = gl.createBuffer();
-          if (!vao || !buf) return null;
-          gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-          gl.bufferData(gl.ARRAY_BUFFER, 4096, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribIPointer(0, 4, gl.INT, 0, 0);
-          gl.vertexAttribDivisor(0, 1);
-          gl.bindVertexArray(null);
-          return { vao, buf, cap: 4096, data: new Int32Array(1024), n: 0, max: 0 };
-        };
-        const base = link(VERT_FULL, FRAG_BASE);
-        const flake = link(VERT_FLAKE, FRAG_FLAKE);
-        const glint = link(VERT_GLINT, FRAG_GLINT);
-        const grain = link(VERT_FULL, FRAG_GRAIN);
-        const empty = gl.createVertexArray();
-        const flakes = rows();
-        const glints = rows();
-        if (!base || !flake || !glint || !grain || !empty || !flakes || !glints) return null;
-        return { gl, base, flake, glint, grain, empty, flakes, glints };
+      vec2 smin(vec2 a, vec2 b, float k){
+        float h = clamp(0.5 + 0.5 * (b.x - a.x) / k, 0.0, 1.0);
+        return vec2(mix(b.x, a.x, h) - k * h * (1.0 - h), mix(b.y, a.y, h));
       }
 
-      function fillRows(R, L, S, cy, cu, shx, shy, f0, f1, reach, D, x0, x1, y0, y1, wTop, wBot, uCap) {
-        const wAt = (y) => Math.max(wTop + (wBot - wTop) * Math.min(3, Math.max(0, y)), 1e-3);
-        const rowLo = Math.ceil((y0 - reach - S) / cy + shy - f1) - 1;
-        const rowHi = Math.floor((y1 + reach - S) / cy + shy - f0) + 1;
-        for (let row = rowLo; row <= rowHi; row++) {
-          const ya = (row + f0 - shy) * cy + S;
-          const yb = (row + f1 - shy) * cy + S;
-          let lo = Infinity, hi = -Infinity;
-          for (let k = 0; k < 4; k++) {
-            const y = k === 0 ? ya : k === 1 ? yb : k === 2 ? 0 : 3;
-            if (k >= 2 && !(y > ya && y < yb)) continue;
-            const w = wAt(y);
-            lo = Math.min(lo, (x0 - reach + D * y) / w);
-            hi = Math.max(hi, (x1 + reach + D * y) / w);
+      float cone(vec2 p, vec2 a, vec2 b, float ra, float rb, out float r){
+        vec2 pb = b - a;
+        p -= a;
+        float h = dot(pb, pb);
+        float t = clamp(dot(p, pb) / (h + 1e-4), 0.0, 1.0);
+        r = mix(ra, rb, t);
+        float bb = ra - rb;
+        if (h <= bb * bb + 1e-3) {
+          return ra > rb ? length(p) - ra : length(p - pb) - rb;
+        }
+        vec2 q = vec2(dot(p, vec2(pb.y, -pb.x)), dot(p, pb)) / h;
+        q.x = abs(q.x);
+        vec2 c = vec2(sqrt(h - bb * bb), bb);
+        float k = c.x * q.y - c.y * q.x;
+        float m = dot(c, q);
+        float n = dot(q, q);
+        if (k < 0.0) return sqrt(h * n) - ra;
+        if (k > c.x) return sqrt(h * (n + 1.0 - 2.0 * q.y)) - rb;
+        return m - ra;
+      }
+
+      vec2 field(vec2 p){
+        float rr = uPill.w * 0.5;
+        vec2 c = vec2(uPill.x + uPill.z * 0.5, uPill.y + rr);
+        float a = max(0.0, uPill.z * 0.5 - rr);
+        vec2 q = p - c;
+        vec2 body = vec2(length(q - vec2(clamp(q.x, -a, a), 0.0)) - rr, rr);
+        float r;
+        if (uMoundR.x > 0.01) {
+          float dm = cone(p, uMound.xy, uMound.zw, uMoundR.x, uMoundR.y, r);
+          body = smin(body, vec2(dm, rr), 14.0);
+        }
+        vec2 st = vec2(1e5, 2.0);
+        for (int s = 0; s < ${MS}; s++) {
+          if (float(s) >= uCount) break;
+          vec4 bx = uBox[s];
+          vec2 ob = max(max(bx.xy - p, p - bx.zw), 0.0);
+          if (dot(ob, ob) > 400.0) continue;
+          vec2 one = vec2(1e5, 2.0);
+          for (int i = 0; i < ${NP - 1}; i++) {
+            vec4 A = uPts[s * ${NP} + i];
+            vec4 B = uPts[s * ${NP} + i + 1];
+            if (length(p - (A.xy + B.xy) * 0.5) - 0.5 * length(B.xy - A.xy) - max(A.z, B.z) > one.x) continue;
+            float d = cone(p, A.xy, B.xy, A.z, B.z, r);
+            if (d < one.x) one = vec2(d, r + 0.3);
           }
-          lo = Math.max(lo, -uCap); hi = Math.min(hi, uCap);
-          if (lo > hi) continue;
-          const c0 = Math.ceil(lo / cu + shx - f1) - 1;
-          const c1 = Math.floor(hi / cu + shx - f0) + 1;
-          const count = c1 - c0 + 1;
-          if (count <= 0) continue;
-          if ((R.n + 1) * 4 > R.data.length) {
-            const grown = new Int32Array(R.data.length * 2);
-            grown.set(R.data);
-            R.data = grown;
+          st = smin(st, one, 3.5);
+        }
+        for (int k = 0; k < ${MSPK}; k++) {
+          if (uSpkR[k].y < 0.5) continue;
+          float d = cone(p, uSpk[k].xy, uSpk[k].zw, uSpkR[k].x, 0.35, r);
+          st = smin(st, vec2(d, r + 1.0), 3.0);
+        }
+        for (int k = 0; k < ${MDROP}; k++) {
+          if (uDrop[k].w < 0.5) continue;
+          st = smin(st, vec2(length(p - uDrop[k].xy) - uDrop[k].z, uDrop[k].z), 5.0);
+        }
+        vec2 res = smin(body, st, 11.0);
+        res.y = max(res.y, body.y * clamp(-body.x / 6.0, 0.0, 1.0));
+        return res;
+      }
+
+      float dist(vec2 p){ return field(p).x; }
+
+      float env(vec3 R){
+        R.x += uLean * 0.18;
+        float up = -R.y;
+        float e = 0.015;
+        e += smoothstep(0.3, 0.5, up) * smoothstep(0.75, 0.55, up) * smoothstep(0.8, 0.5, abs(R.x)) * 2.6;
+        e += smoothstep(0.8, 0.95, up) * 0.6;
+        e += smoothstep(-0.5, -0.7, R.x) * smoothstep(0.5, 0.25, abs(R.y)) * 1.1;
+        e += smoothstep(0.6, 0.85, R.x) * smoothstep(0.6, 0.2, abs(R.y)) * 0.5;
+        e += smoothstep(0.25, 0.7, R.y) * 1.25;
+        return e;
+      }
+
+      void main(){
+        vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
+        vec2 f = field(p);
+        float d = f.x;
+        float aa = clamp(0.5 - d * uDpr, 0.0, 1.0);
+        float sh = 0.0;
+        if (aa < 1.0 && uShadow > 0.0 && d < 30.0) {
+          float ds = dist(p - vec2(2.0, 9.0));
+          sh = (1.0 - smoothstep(-4.0, 16.0, ds)) * uShadow;
+        }
+        vec3 col = vec3(0.0);
+        if (aa > 0.0) {
+          float B = max(f.y, 0.8);
+          float s = clamp(-d, 0.0, B);
+          float z = sqrt(max(1e-3, s * (2.0 * B - s)));
+          float slope = min((B - s) / z, 6.0);
+          float e = 0.5;
+          vec2 g = vec2(dist(p + vec2(e, 0.0)) - d, dist(p + vec2(0.0, e)) - d);
+          g = length(g) > 1e-6 ? normalize(g) : vec2(0.0);
+          vec3 n = normalize(vec3(g * slope, 1.0));
+          vec3 R = reflect(vec3(0.0, 0.0, -1.0), n);
+          float fres = 0.05 + 0.95 * pow(1.0 - max(n.z, 0.0), 3.0);
+          col = uBase + min(env(R) * fres * uRim, 1.0) * uShine;
+          col += pow(max(dot(R, normalize(vec3(-0.35, -0.75, 0.56))), 0.0), 70.0) * 1.2 * uGlint;
+          col += pow(max(dot(R, normalize(vec3(0.55, -0.35, 0.76))), 0.0), 140.0) * 0.55 * uGlint;
+        }
+        float alpha = aa + (1.0 - aa) * sh;
+        gl_FragColor = vec4(col * aa, alpha);
+      }`;
+
+      const stage = document.getElementById("venomStage");
+      const btn = document.getElementById("androidBtn");
+      const glc = document.getElementById("glCanvas");
+      const hc = document.getElementById("handCanvas");
+      const hx = hc.getContext("2d");
+      const gl = glc.getContext("webgl", { premultipliedAlpha: true, antialias: false, alpha: true });
+
+      const vs = gl.createShader(gl.VERTEX_SHADER);
+      const fs = gl.createShader(gl.FRAGMENT_SHADER);
+      const prog = gl.createProgram();
+      gl.shaderSource(vs, VERT);
+      gl.shaderSource(fs, FRAG);
+      gl.compileShader(vs);
+      gl.compileShader(fs);
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const U = {};
+      [
+        "uRes", "uDpr", "uPill", "uPts", "uBox", "uCount", "uSpk", "uSpkR", "uDrop",
+        "uMound", "uMoundR", "uLean", "uBase", "uShine", "uRim", "uGlint", "uShadow"
+      ].forEach((n) => { U[n] = gl.getUniformLocation(prog, n); });
+
+      const quad = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+      const aLoc = gl.getAttribLocation(prog, "a");
+      gl.enableVertexAttribArray(aLoc);
+      gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+      const quadData = new Float32Array(8);
+      const pts = new Float32Array(MS * NP * 4);
+      const box = new Float32Array(MS * 4);
+      const spk = new Float32Array(MSPK * 4);
+      const spkR = new Float32Array(MSPK * 4);
+      const drp = new Float32Array(MDROP * 4);
+
+      const gloveP = new Path2D(GLOVE);
+      const gloveL = new Path2D(GLOVE_LINES);
+      const cuffP = new Path2D(CUFF);
+      const cuffL = new Path2D(CUFF_LINES);
+      const handClip = new Path2D();
+      handClip.addPath(gloveP);
+      handClip.addPath(cuffP);
+
+      let w = 0, h = 0, dpr = 1;
+      const pill = { x: 0, y: 0, w: 0, h: 0, r: 0, ls: 0, P: 1 };
+      let press = 1, pressV = 0, pressed = false;
+
+      function measure() {
+        const bw = btn.offsetWidth, bh = btn.offsetHeight;
+        pill.w = bw * press;
+        pill.h = bh * press;
+        pill.x = btn.offsetLeft + (bw - pill.w) / 2;
+        pill.y = btn.offsetTop + (bh - pill.h) / 2;
+        pill.r = pill.h / 2;
+        pill.ls = Math.max(0, pill.w - pill.h);
+        pill.P = 2 * pill.ls + 2 * Math.PI * pill.r || 1;
+      }
+
+      function at(s) {
+        const { x, y, w: W, h: H, r, ls, P } = pill;
+        s = ((s % P) + P) % P;
+        if (s < ls) return { x: x + r + s, y, nx: 0, ny: -1 };
+        s -= ls;
+        if (s < Math.PI * r) {
+          const a = -Math.PI / 2 + s / r;
+          return { x: x + W - r + Math.cos(a) * r, y: y + r + Math.sin(a) * r, nx: Math.cos(a), ny: Math.sin(a) };
+        }
+        s -= Math.PI * r;
+        if (s < ls) return { x: x + W - r - s, y: y + H, nx: 0, ny: 1 };
+        s -= ls;
+        const a = Math.PI / 2 + s / r;
+        return { x: x + r + Math.cos(a) * r, y: y + r + Math.sin(a) * r, nx: Math.cos(a), ny: Math.sin(a) };
+      }
+
+      function nearest(qx, qy) {
+        const { x, w: W, r, ls } = pill;
+        const cy = pill.y + r;
+        const cx = Math.max(x + r, Math.min(x + W - r, qx));
+        const dist = Math.hypot(qx - cx, qy - cy) - r;
+        let s;
+        if (qx > x + W - r) s = ls + (Math.atan2(qy - cy, qx - cx) + Math.PI / 2) * r;
+        else if (qx < x + r) {
+          let a = Math.atan2(qy - cy, qx - cx);
+          if (a < -Math.PI / 2) a += Math.PI * 2;
+          s = 2 * ls + Math.PI * r + (a - Math.PI / 2) * r;
+        } else s = qy < cy ? qx - (x + r) : ls + Math.PI * r + (x + W - r - qx);
+        return { s, dist };
+      }
+
+      function loopDiff(a, b) {
+        const P = pill.P;
+        let d = (b - a) % P;
+        if (d > P / 2) d -= P;
+        if (d < -P / 2) d += P;
+        return d;
+      }
+
+      function fit() {
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        w = stage.offsetWidth;
+        h = stage.offsetHeight;
+        hc.width = Math.max(1, Math.round(w * dpr));
+        hc.height = Math.max(1, Math.round(h * dpr));
+        glc.width = Math.max(1, Math.round(w * dpr));
+        glc.height = Math.max(1, Math.round(h * dpr));
+        gl.viewport(0, 0, glc.width, glc.height);
+        measure();
+      }
+
+      const ptr = { x: -999, y: -999, inside: false, last: 0 };
+      let touched = false;
+      stage.addEventListener("pointermove", (e) => {
+        const rect = stage.getBoundingClientRect();
+        ptr.x = e.clientX - rect.left;
+        ptr.y = e.clientY - rect.top;
+        ptr.inside = ptr.x >= 0 && ptr.y >= 0 && ptr.x <= w && ptr.y <= h;
+        if (ptr.inside) { touched = true; ptr.last = performance.now(); }
+      }, { passive: true });
+      stage.addEventListener("pointerleave", () => { ptr.inside = false; });
+      btn.addEventListener("pointerdown", () => { pressed = true; });
+      window.addEventListener("pointerup", () => { pressed = false; });
+
+      const GHOST = [
+        [0.5, 0.8, 1.1], [0.36, 0.74, 1.0], [0.6, 0.82, 0.9], [0.8, 0.64, 0.55], [0.98, 0.97, 1.4],
+        [0.86, 0.28, 1.1], [0.7, 0.18, 1.0], [0.5, 0.12, 1.0], [0.3, 0.2, 0.55], [0.03, 0.04, 1.4],
+        [0.16, 0.58, 1.1], [0.32, 0.86, 1.0]
+      ];
+      const ghostTotal = GHOST.reduce((a, p) => a + p[2], 0);
+      function ghostAt(t) {
+        let u = t % ghostTotal, i = 0;
+        while (u > GHOST[i][2]) { u -= GHOST[i][2]; i++; }
+        const f = u / GHOST[i][2];
+        const p = (k) => GHOST[(k + GHOST.length) % GHOST.length];
+        const p0 = p(i - 1), p1 = p(i), p2 = p(i + 1), p3 = p(i + 2);
+        const e = f * f * (3 - 2 * f);
+        const cr = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * e + (2 * a - 5 * b + 4 * c - d) * e * e + (-a + 3 * b - 3 * c + d) * e * e * e);
+        const gw = Math.min(w, 840), gh = Math.min(h, 420);
+        return { x: (w - gw) / 2 + cr(p0[0], p1[0], p2[0], p3[0]) * gw, y: (h - gh) / 2 + cr(p0[1], p1[1], p2[1], p3[1]) * gh };
+      }
+
+      let mode = "idle", violentSnap = false, grow = 0, seekF = 0;
+      let list = [], webs = [];
+      const spikes = [], drops = [];
+      let near = { s: 0, dist: 999 }, hand = { x: -999, y: -999 }, anchor = { x: 0, y: 0 };
+      let stretch = 0, mound = 0, moundV = 0, moundS = 0, moundDir = { x: 0, y: 1 }, lean = 0;
+      const sc = PRESET.gloveScale / 100;
+      const coat = new Float32Array(GRIPS.length);
+      const goo = hexRgb(PRESET.gooColor);
+      const shine = hexRgb(PRESET.shine);
+
+      const gripAt = (g) => ({ x: hand.x + (g[0] - HOT_X) * sc, y: hand.y + (g[1] - HOT_Y) * sc });
+
+      function spawn() {
+        list = [];
+        const total = PRESET.strands * 2 - 1;
+        const root = at(near.s);
+        for (let k = 0; k < total; k++) {
+          const hair = k % 2 === 1;
+          const mi = Math.floor(k / 2);
+          const g = hair
+            ? [(GRIPS[mi % GRIPS.length][0] + GRIPS[(mi + 1) % GRIPS.length][0]) / 2, (GRIPS[mi % GRIPS.length][1] + GRIPS[(mi + 1) % GRIPS.length][1]) / 2]
+            : GRIPS[mi % GRIPS.length];
+          list.push({
+            x: new Float32Array(NP).fill(root.x), y: new Float32Array(NP).fill(root.y),
+            px: new Float32Array(NP).fill(root.x), py: new Float32Array(NP).fill(root.y),
+            spread: (k / (total - 1)) * 2 - 1 + (Math.random() - 0.5) * 0.15,
+            s: near.s,
+            slack: 1.02 + Math.random() * (hair ? 0.2 : 0.12),
+            width: hair ? 0.5 : 0.8 + Math.random() * 0.45,
+            grip: g,
+            gi: hair ? -1 : mi % GRIPS.length,
+            reachK: hair ? 0.35 : 0.55 + Math.random() * 0.4,
+            ex: root.x, ey: root.y,
+            follow: 9 + Math.random() * 8,
+            seg: 0, phase: Math.random() * 10, hair,
+          });
+        }
+        webs = [];
+        for (let k = 0; k < list.length - 1; k++) {
+          const count = 1 + Math.floor(Math.random() * 2);
+          for (let c = 0; c < count; c++) {
+            const i = 3 + Math.floor(Math.random() * (NP - 5));
+            const j = Math.max(2, Math.min(NP - 2, i + Math.round((Math.random() - 0.5) * 3)));
+            webs.push([k, k + 1, i, j, (Math.random() - 0.5) * 5]);
           }
-          const o = R.n * 4;
-          R.data[o] = L; R.data[o + 1] = row; R.data[o + 2] = c0; R.data[o + 3] = count;
-          R.n++;
-          if (count > R.max) R.max = count;
+        }
+        grow = 0;
+        mode = "seek";
+      }
+
+      function snap(violent) {
+        if (mode === "idle" || mode === "snap") return;
+        mode = "snap";
+        violentSnap = violent;
+        if (!violent) return;
+        moundV -= PRESET.recoil;
+        const spikeK = PRESET.spikes / 100;
+        const seen = new Set();
+        for (const st of list) {
+          if (st.hair) continue;
+          const key = Math.round(st.s / 8);
+          if (seen.has(key) || spikes.length >= MSPK) continue;
+          seen.add(key);
+          if (spikeK > 0) spikes.push({ s: st.s, tilt: (Math.random() - 0.5) * 0.8, len: (10 + Math.random() * 16) * spikeK, age: 0, life: 1.1 + Math.random() * 0.6 });
         }
       }
 
-      function uploadRows(gl, R) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, R.buf);
-        const bytes = R.n * 16;
-        if (bytes > R.cap) {
-          R.cap = R.data.byteLength;
-          gl.bufferData(gl.ARRAY_BUFFER, R.data, gl.DYNAMIC_DRAW);
-        } else if (bytes > 0) gl.bufferSubData(gl.ARRAY_BUFFER, 0, R.data, 0, R.n * 4);
-      }
+      let prev = -1, t0 = -1;
+      function draw(now) {
+        const dt = prev < 0 ? 0 : Math.min(0.033, (now - prev) / 1000);
+        prev = now;
+        if (t0 < 0) t0 = now;
+        if (!w || !h) return;
 
-      const root = document.getElementById("cascade-root");
-      const canvas = document.createElement("canvas");
-      canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
-      root.appendChild(canvas);
-
-      const gl = canvas.getContext("webgl2", {
-        alpha: false, antialias: false, depth: false, stencil: false,
-        powerPreference: "low-power", preserveDrawingBuffer: false,
-      });
-      const G = gl ? buildGL(gl) : null;
-      if (!G) return;
-
-      const adv = ADVANCED_DEFAULTS;
-      const scroll = new Float64Array(4);
-      const fallV = new Float64Array(4);
-      let gScroll = 0, gPhase = 0, clock = 0, last = -1;
-      let mx = 0.5, my = 0.5, tu = 0.5, tv = 0.5, inside = false, hov = 0;
-
-      const fall = Math.max(0.2, num(adv.fallSpeed, 7)) / 100;
-      const spread = clamp(num(adv.fallSpread, 50), 0, 90) / 100;
-      for (let L = 0; L < 4; L++) fallV[L] = Math.max(fall * (1 + ((L - 1.5) / 1.5) * spread), 1e-3);
-      const gFall = Math.max(fall, 1e-3);
-      const glintRate = clamp(20, 0, 60);
-      const glintP = 35 / Math.max(glintRate, 0.5);
-      const density = clamp(700, 100, 1500) / 700;
-      const wTop = Math.max(5, num(adv.topWidth, 70)) / 1000;
-      const wBot = (clamp(70, 20, 150) / 100) * 0.25;
-      const flakeR = Math.max(0.5, num(adv.flakeSize, 3)) / 1600;
-      const sizeVar = clamp(num(adv.sizeVariance, 60), 0, 200) / 100;
-      const glintArm = Math.max(1, num(adv.glintArm, 34)) / 1000;
-      const glintHalo = Math.max(0.5, num(adv.glintHalo, 9)) / 1000;
-      const glintReach = Math.max(glintArm * 0.6, glintHalo * 3);
-      const core = clamp(num(adv.coreDensity, 42), 0, 100) / 100 * (1 + Math.max(0, num(adv.topBoost, 150)) / 100) * density;
-      const stray = clamp(num(adv.stray, 3), 0, 100) / 100 * density;
-      const uCap = Math.max(
-        core > 1e-6 ? Math.sqrt(Math.log(core / 1e-6) / 1.2) : 0,
-        stray > 1e-6 ? 1.5 + Math.log(stray / 1e-6) : 0
-      ) + 0.2;
-
-      const bg = parseHexRGB("#000000", [0, 0, 0]);
-      const base = parseHexRGB("#FF6500", [1, 0.4, 0]);
-      const acc = parseHexRGB("#E0C1E3", [0.88, 0.76, 0.89]);
-      const hazeLow = parseHexRGB(adv.hazeLow, [0.23, 0.16, 0.42]);
-      const lav = parseHexRGB(adv.flakeLav, [0.68, 0.54, 0.71]);
-      const pink = parseHexRGB(adv.flakePink, [0.88, 0.44, 0.82]);
-      const blue = parseHexRGB(adv.flakeBlue, [0.63, 0.69, 1]);
-      const warm = parseHexRGB(adv.flakeWarm, [0.91, 0.63, 0.5]);
-      const gPink = parseHexRGB(adv.glintPink, [1, 0.48, 0.82]);
-      const gBlue = parseHexRGB(adv.glintBlue, [0.54, 0.54, 1]);
-
-      root.addEventListener("pointermove", (e) => {
-        const r = root.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) {
-          tu = (e.clientX - r.left) / r.width;
-          tv = (e.clientY - r.top) / r.height;
-          inside = true;
+        const pressTo = pressed ? PRESET.pressScale / 100 : 1;
+        for (let i = 0; i < 4; i++) {
+          const q = dt / 4;
+          pressV += (420 * (pressTo - press) - 18 * pressV) * q;
+          press += pressV * q;
         }
-      });
-      root.addEventListener("pointerleave", () => { inside = false; });
+        btn.style.transform = press === 1 ? "" : `scale(${press})`;
+        measure();
+        const time = (now - t0) / 1000;
 
-      function resizeAndSetStatic(W, H) {
-        const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
-        let k = dpr;
-        const px = W * H * k * k;
-        if (px > MAX_PIXELS) k *= Math.sqrt(MAX_PIXELS / px);
-        const bw = Math.max(1, Math.round(W * k));
-        const bh = Math.max(1, Math.round(H * k));
-        if (canvas.width !== bw || canvas.height !== bh) {
-          canvas.width = bw;
-          canvas.height = bh;
-        }
-        gl.viewport(0, 0, bw, bh);
-        const fit = H > 0 ? Math.min(1, W / H / REF_ASPECT) : 1;
-        const scale = Math.max(0.05, fit);
-        const D = dirFrame("down", bw / Math.max(1, bh));
-        for (const P of [G.base, G.flake, G.glint, G.grain]) {
-          gl.useProgram(P.prog);
-          gl.uniform2f(P.loc.res, bw, bh);
-          gl.uniform4f(P.u("uDir"), D.m[0], D.m[1], D.m[2], D.m[3]);
-          gl.uniform2f(P.u("uDirO"), D.o[0], D.o[1]);
-          gl.uniform3f(P.loc.bg, bg[0], bg[1], bg[2]);
-          gl.uniform3f(P.loc.base, base[0], base[1], base[2]);
-          gl.uniform3f(P.loc.accent, acc[0], acc[1], acc[2]);
-          gl.uniform1f(P.loc.scale, scale);
-          gl.uniform1f(P.u("uDensity"), density);
-          gl.uniform1f(P.u("uWBot"), wBot);
-          gl.uniform1f(P.u("uGlintRate"), glintRate);
-          gl.uniform1f(P.u("uHoverAmt"), clamp(num(adv.hover, 50), 0, 100) / 50);
-          gl.uniform1f(P.u("uFall"), fall);
-          gl.uniform1f(P.u("uFallSpread"), spread);
-          gl.uniform1f(P.u("uDrift"), num(adv.drift, 2) / 1000);
-          gl.uniform1f(P.u("uWTop"), wTop);
-          gl.uniform1f(P.u("uCoreDen"), clamp(num(adv.coreDensity, 42), 0, 100) / 100);
-          gl.uniform1f(P.u("uTopBoost"), Math.max(0, num(adv.topBoost, 150)) / 100);
-          gl.uniform1f(P.u("uTopDepth"), Math.max(1, num(adv.topDepth, 30)) / 100);
-          gl.uniform1f(P.u("uStray"), clamp(num(adv.stray, 3), 0, 100) / 100);
-          gl.uniform1f(P.u("uFlakeR"), flakeR);
-          gl.uniform1f(P.u("uSizeVar"), sizeVar);
-          gl.uniform1f(P.u("uFlakeBright"), Math.max(0, num(adv.flakeBright, 100)) / 100);
-          gl.uniform1f(P.u("uShimmer"), clamp(num(adv.shimmer, 30), 0, 100) / 100);
-          gl.uniform1f(P.u("uWarmShare"), clamp(num(adv.warmShare, 1), 0, 100) / 100);
-          gl.uniform1f(P.u("uGlintLife"), Math.max(50, num(adv.glintLife, 450)) / 1000);
-          gl.uniform1f(P.u("uGlintRise"), Math.max(10, num(adv.glintRise, 150)) / 1000);
-          gl.uniform1f(P.u("uGlintArm"), glintArm);
-          gl.uniform1f(P.u("uGlintCore"), Math.max(0.5, num(adv.glintCore, 3)) / 1000);
-          gl.uniform1f(P.u("uGlintHalo"), glintHalo);
-          gl.uniform1f(P.u("uGlintBright"), Math.max(0, num(adv.glintBright, 100)) / 100);
-          gl.uniform1f(P.u("uGlintWarm"), clamp(num(adv.glintWarm, 7), 0, 100) / 100);
-          gl.uniform1f(P.u("uHaze"), Math.max(0, num(adv.haze, 85)) / 100);
-          gl.uniform1f(P.u("uHazeW"), Math.max(5, num(adv.hazeWidth, 50)) / 1000);
-          gl.uniform1f(P.u("uHazeDepth"), Math.max(1, num(adv.hazeDepth, 22)) / 100);
-          gl.uniform3f(P.u("uHazeLow"), hazeLow[0], hazeLow[1], hazeLow[2]);
-          gl.uniform3f(P.u("uLav"), lav[0], lav[1], lav[2]);
-          gl.uniform3f(P.u("uPink"), pink[0], pink[1], pink[2]);
-          gl.uniform3f(P.u("uBlue"), blue[0], blue[1], blue[2]);
-          gl.uniform3f(P.u("uWarm"), warm[0], warm[1], warm[2]);
-          gl.uniform3f(P.u("uGPink"), gPink[0], gPink[1], gPink[2]);
-          gl.uniform3f(P.u("uGBlue"), gBlue[0], gBlue[1], gBlue[2]);
-          gl.uniform1f(P.u("uPushR"), Math.max(1, num(adv.pushRadius, 12)) / 100);
-          gl.uniform1f(P.u("uSeed"), Math.round(clamp(num(adv.seed, 1), 0, 999)));
-          gl.uniform1f(P.u("uGrain"), 0);
-          gl.uniform1f(P.u("uVignette"), 0);
-        }
-        return { bw, bh, scale, D };
-      }
+        const ghost = !touched || (!ptr.inside && now - ptr.last > PRESET.ghostDelayMs);
+        let present = ptr.inside;
+        if (ghost) { hand = ghostAt(time); present = true; } else hand = { x: ptr.x, y: ptr.y };
+        stage.style.cursor = !ghost && present ? "none" : "";
 
-      function frame(now) {
+        anchor = { x: hand.x + (16 - HOT_X) * sc, y: hand.y + (18 - HOT_Y) * sc };
+        near = nearest(anchor.x, anchor.y);
+        const D = Math.max(0, near.dist);
+        const hk = PRESET.hover / 50;
+        const sn = PRESET.sense * hk;
+        const rc = PRESET.reach * hk;
+        const rl = PRESET.release * hk;
+        const cx = pill.x + pill.w / 2;
+        lean += ((present ? Math.max(-1, Math.min(1, (hand.x - cx) / (pill.w * 1.5))) * Math.min(1, hk) : 0) - lean) * Math.min(1, dt * 4);
+
+        if (mode === "idle" && present && D < sn) spawn();
+        else if (mode === "snap" && !violentSnap && present && D < sn) mode = "seek";
+        else if (mode === "seek" && (!present || D > sn + 25)) snap(false);
+        else if (mode === "seek" && D < rc) { mode = "grow"; grow = 0; }
+        else if ((mode === "grow" || mode === "hold") && (!present || D > rl)) snap(true);
+
+        const holding = mode === "hold" || mode === "grow";
+        const seeking = mode === "seek";
+        const fT = seeking ? Math.max(0, Math.min(1, (sn - D) / Math.max(1, sn - rc))) : holding ? 1 : 0;
+        seekF += (fT - seekF) * Math.min(1, dt * 5);
+        stretch = holding ? Math.min(1, D / Math.max(1, rl)) : 0;
+        if (mode === "grow") {
+          grow = Math.min(1, grow + dt / (PRESET.lungeMs / 1000));
+          if (grow >= 1) mode = "hold";
+        }
+
+        const spreadPx = Math.max(14, Math.min(pill.w * 0.3, D * 0.4 + 14)) * (seeking ? 0.65 : 1);
+        let alive = 0;
+        for (const st of list) {
+          const target = near.s + st.spread * spreadPx;
+          st.s += loopDiff(st.s, target) * Math.min(1, dt * (mode === "snap" ? 1.5 : 6));
+          const root = at(st.s);
+          const rx = root.x - root.nx * 3, ry = root.y - root.ny * 3;
+          let pinTip = false;
+          const gp = gripAt(st.grip);
+          if (seeking) {
+            const vx = gp.x - rx, vy = gp.y - ry;
+            const vl = Math.hypot(vx, vy) || 1;
+            const ease = seekF * seekF * (3 - 2 * seekF);
+            const dart = Math.pow(Math.max(0, Math.sin(time * 1.9 + st.phase * 3.1)), 10) * (PRESET.dart / 100);
+            const len = Math.max(3, vl * st.reachK * 0.85 * ease * (1 + dart));
+            const sway = Math.sin(time * 2.7 + st.phase) * (3 + 9 * ease) + Math.sin(time * 5.3 + st.phase * 2) * 2 * ease;
+            const tx = rx + (vx / vl) * len - (vy / vl) * sway;
+            const ty = ry + (vy / vl) * len + (vx / vl) * sway;
+            const k = 1 - Math.exp(-dt * 6);
+            st.ex += (tx - st.ex) * k;
+            st.ey += (ty - st.ey) * k;
+            pinTip = true;
+            st.seg = (Math.hypot(st.ex - rx, st.ey - ry) * (st.slack + 0.06)) / (NP - 1);
+          } else if (holding) {
+            let gx = gp.x, gy = gp.y;
+            if (mode === "grow") {
+              const coil = Math.pow(1 - grow, 1.6) * (st.hair ? PRESET.coil * 0.54 : PRESET.coil);
+              const a = st.phase + grow * ((PRESET.coilAngle * Math.PI) / 180);
+              gx += Math.cos(a) * coil;
+              gy += Math.sin(a) * coil * 0.8;
+            }
+            const k = 1 - Math.exp(-dt * (mode === "grow" ? 20 + st.follow : st.follow * 1.4));
+            st.ex += (gx - st.ex) * k;
+            st.ey += (gy - st.ey) * k;
+            pinTip = true;
+            st.seg = (Math.hypot(st.ex - rx, st.ey - ry) * st.slack) / (NP - 1);
+          } else {
+            st.seg *= Math.exp(-dt * 5.5);
+            if (st.seg * (NP - 1) > 1.5) alive++;
+          }
+          const damp = (mode === "snap" ? PRESET.snapDamping : PRESET.damping) / 100;
+          for (let i = 1; i < NP; i++) {
+            const vx = (st.x[i] - st.px[i]) * damp, vy = (st.y[i] - st.py[i]) * damp;
+            st.px[i] = st.x[i]; st.py[i] = st.y[i];
+            const mid = Math.sin((i / (NP - 1)) * Math.PI);
+            const wx = Math.sin(time * 1.6 + st.phase + i * 0.55) * PRESET.sway * mid;
+            const wy = Math.cos(time * 1.3 + st.phase * 1.3 + i * 0.45) * PRESET.sway * mid;
+            st.x[i] += vx + wx * dt * dt;
+            st.y[i] += vy + (PRESET.gravity + wy) * dt * dt;
+          }
+          st.x[0] = st.px[0] = rx; st.y[0] = st.py[0] = ry;
+          if (pinTip) { st.x[NP - 1] = st.ex; st.y[NP - 1] = st.ey; }
+          const len = Math.max(0.01, st.seg);
+          for (let it = 0; it < 14; it++) {
+            for (let i = 0; i < NP - 1; i++) {
+              const dx = st.x[i + 1] - st.x[i], dy = st.y[i + 1] - st.y[i];
+              const d = Math.hypot(dx, dy) || 0.0001;
+              const diff = (d - len) / d;
+              const a = i === 0 ? 0 : 0.5, b = pinTip && i + 1 === NP - 1 ? 0 : i === 0 ? 1 : 0.5;
+              const m = a + b || 1;
+              st.x[i] += dx * diff * (a / m); st.y[i] += dy * diff * (a / m);
+              st.x[i + 1] -= dx * diff * (b / m); st.y[i + 1] -= dy * diff * (b / m);
+            }
+          }
+        }
+        if (mode === "snap" && alive === 0) { mode = "idle"; list = []; webs = []; }
+
+        const moundTarget = (holding ? 5 + 16 * stretch : seeking ? 3 + 9 * seekF : 0) * (PRESET.mound / 100);
+        moundV += ((moundTarget - mound) * 150 - moundV * 9) * dt;
+        mound += moundV * dt;
+        if (holding || seeking) {
+          moundS += loopDiff(moundS, near.s) * Math.min(1, dt * 6);
+          const e = at(moundS);
+          const tx = anchor.x - e.x, ty = anchor.y - e.y, tl = Math.hypot(tx, ty) || 1;
+          moundDir = { x: e.nx * 0.55 + (tx / tl) * 0.45, y: e.ny * 0.55 + (ty / tl) * 0.45 };
+        }
+
+        for (let k = spikes.length - 1; k >= 0; k--) {
+          spikes[k].age += dt;
+          if (spikes[k].age > spikes[k].life) spikes.splice(k, 1);
+        }
+
+        const thin = 1 - (PRESET.stretchThin / 100) * stretch;
+        const mains = list.filter((s) => !s.hair).slice(0, MS);
+        let minX = pill.x, minY = pill.y, maxX = pill.x + pill.w, maxY = pill.y + pill.h;
+        const grow2 = seeking ? 0.55 + 0.45 * seekF : 1;
+        mains.forEach((st, si) => {
+          let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+          for (let i = 0; i < NP; i++) {
+            const f = i / (NP - 1);
+            let r = st.width * (3.0 - 1.9 * f) * thin * grow2;
+            if (holding) r *= 1 + (PRESET.pulse / 100) * Math.sin(f * 9 - time * 6 + st.phase) * Math.sin(f * Math.PI);
+            if (mode === "snap") r *= 1.15;
+            const o = (si * NP + i) * 4;
+            const rr = Math.max(0.55, r);
+            pts[o] = st.x[i]; pts[o + 1] = st.y[i]; pts[o + 2] = rr; pts[o + 3] = 1;
+            bx0 = Math.min(bx0, st.x[i] - rr); bx1 = Math.max(bx1, st.x[i] + rr);
+            by0 = Math.min(by0, st.y[i] - rr); by1 = Math.max(by1, st.y[i] + rr);
+          }
+          box[si * 4] = bx0; box[si * 4 + 1] = by0; box[si * 4 + 2] = bx1; box[si * 4 + 3] = by1;
+          minX = Math.min(minX, bx0); maxX = Math.max(maxX, bx1);
+          minY = Math.min(minY, by0); maxY = Math.max(maxY, by1);
+        });
+
+        spk.fill(0); spkR.fill(0);
+        spikes.forEach((sp, k) => {
+          const p = sp.age / sp.life;
+          const up = p < 0.15 ? 1 - Math.pow(1 - p / 0.15, 3) : p > 0.45 ? Math.max(0, 1 - (p - 0.45) / 0.55) : 1;
+          const len = sp.len * (p > 0.45 ? up * up * (3 - 2 * up) : up);
+          const b = at(sp.s);
+          const ang = Math.atan2(b.ny, b.nx) + sp.tilt + Math.sin(sp.age * 14) * Math.exp(-sp.age * 3) * 0.35;
+          const tx = b.x + Math.cos(ang) * len, ty = b.y + Math.sin(ang) * len;
+          spk[k * 4] = b.x - b.nx * 2; spk[k * 4 + 1] = b.y - b.ny * 2; spk[k * 4 + 2] = tx; spk[k * 4 + 3] = ty;
+          spkR[k * 4] = 2.6 * Math.min(1, up + 0.2); spkR[k * 4 + 1] = len > 0.6 ? 1 : 0;
+          minX = Math.min(minX, tx); maxX = Math.max(maxX, tx); minY = Math.min(minY, ty); maxY = Math.max(maxY, ty);
+        });
+        drp.fill(0);
+
+        const me = at(moundS);
+        const mlen = Math.max(0, mound);
+        const mr = mlen > 0.3 ? (9 + spreadPx * 0.32) * Math.min(1, mound / 6) : 0;
+        const mtx = me.x + moundDir.x * mlen, mty = me.y + moundDir.y * mlen;
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform2f(U.uRes, glc.width, glc.height);
+        gl.uniform1f(U.uDpr, dpr);
+        gl.uniform4f(U.uPill, pill.x, pill.y, pill.w, pill.h);
+        gl.uniform4fv(U.uPts, pts);
+        gl.uniform4fv(U.uBox, box);
+        gl.uniform1f(U.uCount, mains.length);
+        gl.uniform4fv(U.uSpk, spk);
+        gl.uniform4fv(U.uSpkR, spkR);
+        gl.uniform4fv(U.uDrop, drp);
+        gl.uniform4f(U.uMound, me.x - me.nx * 6, me.y - me.ny * 6, mtx, mty);
+        gl.uniform2f(U.uMoundR, mr, mr * 0.45);
+        gl.uniform1f(U.uLean, lean);
+        gl.uniform3f(U.uBase, goo[0], goo[1], goo[2]);
+        gl.uniform3f(U.uShine, shine[0], shine[1], shine[2]);
+        gl.uniform1f(U.uRim, PRESET.rim / 100);
+        gl.uniform1f(U.uGlint, PRESET.glint / 100);
+        gl.uniform1f(U.uShadow, PRESET.shadow / 100);
+
+        const pad = 34;
+        const x0 = Math.max(0, minX - pad), x1 = Math.min(w, maxX + pad), y0 = Math.max(0, minY - pad), y1 = Math.min(h, maxY + pad + 10);
+        const X = (v) => (v / w) * 2 - 1, Y = (v) => 1 - (v / h) * 2;
+        quadData.set([X(x0), Y(y0), X(x1), Y(y0), X(x0), Y(y1), X(x1), Y(y1)]);
+        gl.bufferData(gl.ARRAY_BUFFER, quadData, gl.DYNAMIC_DRAW);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        const skinIn = 1000 / PRESET.skinInMs;
+        const skinOut = 1000 / PRESET.skinOutMs;
+        for (let g = 0; g < coat.length; g++) {
+          const caught = holding && list.some((st) => st.gi === g && Math.hypot(st.ex - gripAt(st.grip).x, st.ey - gripAt(st.grip).y) < 6);
+          coat[g] = caught ? Math.min(1, coat[g] + dt * skinIn) : Math.max(0, coat[g] - dt * skinOut);
+        }
+
+        hx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        hx.clearRect(0, 0, w, h);
+        hx.lineCap = "round";
+        hx.lineJoin = "round";
+
+        if (list.length && (holding || mode === "snap")) {
+          hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.01), 0.9);
+          for (const st of list) {
+            if (!st.hair) continue;
+            hx.lineWidth = 0.7 * thin;
+            hx.beginPath();
+            hx.moveTo(st.x[0], st.y[0]);
+            for (let i = 1; i < NP - 1; i++) hx.quadraticCurveTo(st.x[i], st.y[i], (st.x[i] + st.x[i + 1]) / 2, (st.y[i] + st.y[i + 1]) / 2);
+            hx.lineTo(st.x[NP - 1], st.y[NP - 1]);
+            hx.stroke();
+          }
+          if (mode === "hold") {
+            hx.strokeStyle = cssRgb(mixRgb(goo, shine, 0.03), 0.6);
+            hx.lineWidth = 0.5;
+            for (const [a, b, i, j, kink] of webs) {
+              const As = list[a], Bs = list[b];
+              if (!As || !Bs) continue;
+              hx.beginPath();
+              hx.moveTo(As.x[i], As.y[i]);
+              hx.lineTo((As.x[i] + Bs.x[j]) / 2 + kink, (As.y[i] + Bs.y[j]) / 2 - Math.abs(kink) * 0.4);
+              hx.lineTo(Bs.x[j], Bs.y[j]);
+              hx.stroke();
+            }
+          }
+        }
+
+        if (present) {
+          hx.save();
+          hx.translate(hand.x - HOT_X * sc, hand.y - HOT_Y * sc);
+          hx.scale(sc, sc);
+          hx.save();
+          hx.translate(2.5, 4.5);
+          hx.fillStyle = "rgba(0,0,0,0.15)";
+          hx.fill(gloveP);
+          hx.fill(cuffP);
+          hx.restore();
+          hx.fillStyle = "#ffffff";
+          hx.fill(cuffP);
+          hx.fill(gloveP);
+          if (coat.some((c) => c > 0.01)) {
+            const skinHi = cssRgb(mixRgb(goo, shine, 0.33));
+            const skinMid = cssRgb(mixRgb(goo, shine, 0.06));
+            const skinLo = cssRgb(goo);
+            hx.save();
+            hx.clip(handClip);
+            for (let g = 0; g < coat.length; g++) {
+              const c = coat[g];
+              if (c < 0.01) continue;
+              const e = c * c * (3 - 2 * c);
+              const [gx0, gy0] = GRIPS[g];
+              const cx0 = gx0 + (17 - gx0) * e * 0.35;
+              const cy0 = gy0 + (20 - gy0) * e * 0.35;
+              const R = 2.4 + e * 7.5;
+              hx.beginPath();
+              for (let k = 0; k <= 28; k++) {
+                const a = (k / 28) * Math.PI * 2;
+                const rr = R * (1 + 0.17 * Math.sin(4 * a + g * 1.7 + time * 2.2) + 0.08 * Math.sin(7 * a - time * 3.1 + g));
+                const x = cx0 + Math.cos(a) * rr, y = cy0 + Math.sin(a) * rr;
+                if (k === 0) hx.moveTo(x, y); else hx.lineTo(x, y);
+              }
+              hx.closePath();
+              const grad = hx.createRadialGradient(cx0 - R * 0.35, cy0 - R * 0.4, 0, cx0, cy0, R * 1.15);
+              grad.addColorStop(0, skinHi);
+              grad.addColorStop(0.28, skinMid);
+              grad.addColorStop(1, skinLo);
+              hx.fillStyle = grad;
+              hx.fill();
+            }
+            hx.restore();
+          }
+          hx.strokeStyle = "#0b0b0b";
+          hx.lineJoin = "round";
+          hx.lineWidth = 1.9; hx.stroke(cuffP);
+          hx.lineWidth = 1.1; hx.stroke(cuffL);
+          hx.lineWidth = 1.9; hx.stroke(gloveP);
+          hx.lineWidth = 1.1; hx.stroke(gloveL);
+          hx.restore();
+        }
+
         requestAnimationFrame(frame);
-        const dt = last < 0 ? 0 : Math.min((now - last) / 1000, 0.05);
-        last = now;
-        const W = root.clientWidth || window.innerWidth;
-        const H = root.clientHeight || window.innerHeight;
-        const { bw, bh, scale, D } = resizeAndSetStatic(W, H);
-
-        const ad = dt * 2;
-        if (ad > 0) {
-          for (let L = 0; L < 4; L++) scroll[L] = (scroll[L] + ad * fallV[L]) % (HASH_ROWS * FLAKE_ROW);
-          gScroll = (gScroll + ad * gFall) % (HASH_ROWS * GLINT_ROW);
-          gPhase = (gPhase + ad / glintP) % HASH_ROWS;
-          clock = (clock + ad) % TIME_WRAP;
-        }
-        const target = inside ? 1 : 0;
-        const kp = 1 - Math.exp(-dt / 0.06);
-        if (hov < 0.01 && inside) { mx = tu; my = tv; }
-        else { mx += (tu - mx) * kp; my += (tv - my) * kp; }
-        hov += (target - hov) * (1 - Math.exp(-dt * 6));
-
-        const px = 1 / (bh * scale);
-        const ha = (0.5 * bw) / bh;
-        let wx0 = Infinity, wx1 = -Infinity, wy0 = Infinity, wy1 = -Infinity;
-        for (let k = 0; k < 4; k++) {
-          const fx = k & 1 ? ha : -ha;
-          const fy = k >> 1;
-          const qx = (D.m[0] * fx + D.m[1] * fy + D.o[0]) / scale;
-          const qy = (D.m[2] * fx + D.m[3] * fy + D.o[1]) / scale;
-          wx0 = Math.min(wx0, qx); wx1 = Math.max(wx1, qx);
-          wy0 = Math.min(wy0, qy); wy1 = Math.max(wy1, qy);
-        }
-
-        const F = G.flakes; F.n = 0; F.max = 0;
-        for (let L = 0; L < 4; L++) {
-          const sz = 0.75 + 0.2 * L;
-          const reach = Math.max(flakeR * sz * (1 + sizeVar) * 1.4, 0.6 * px) * 1.8 + 2 * px;
-          fillRows(F, L, scroll[L], FLAKE_ROW, 0.16, L * 0.37, L * 0.61, 0.15, 0.85,
-            2 * reach + 2 * px, (num(adv.drift, 2) / 1000) / fallV[L], wx0, wx1, wy0, wy1, wTop, wBot, uCap);
-        }
-        uploadRows(gl, F);
-
-        const Gl = G.glints; Gl.n = 0; Gl.max = 0;
-        if (glintRate > 0) {
-          fillRows(Gl, 0, gScroll, GLINT_ROW, 0.55, 0, 0, 0.1, 0.9,
-            2 * (glintReach + 2 * px) + 2 * px, (num(adv.drift, 2) / 1000) / gFall, wx0, wx1, wy0, wy1, wTop, wBot, Infinity);
-        }
-        uploadRows(gl, Gl);
-
-        const setDyn = (P) => {
-          gl.useProgram(P.prog);
-          gl.uniform1f(P.loc.time, clock);
-          gl.uniform4f(P.loc.scroll, scroll[0], scroll[1], scroll[2], scroll[3]);
-          gl.uniform1f(P.loc.gScroll, gScroll);
-          gl.uniform1f(P.loc.gPhase, gPhase);
-          gl.uniform2f(P.loc.mouse, mx, 1 - my);
-          gl.uniform1f(P.loc.hover, hov);
-        };
-
-        gl.disable(gl.BLEND);
-        setDyn(G.base);
-        gl.bindVertexArray(G.empty);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-        gl.enable(gl.BLEND);
-        gl.blendEquation(gl.FUNC_ADD);
-        gl.blendFunc(gl.ONE, gl.ONE);
-        if (F.n > 0) {
-          setDyn(G.flake);
-          gl.bindVertexArray(F.vao);
-          gl.drawArraysInstanced(gl.TRIANGLES, 0, 6 * F.max, F.n);
-        }
-        if (Gl.n > 0) {
-          setDyn(G.glint);
-          gl.bindVertexArray(Gl.vao);
-          gl.drawArraysInstanced(gl.TRIANGLES, 0, 6 * Gl.max, Gl.n);
-        }
-        gl.bindVertexArray(null);
       }
+
+      new ResizeObserver(fit).observe(stage);
+      fit();
       requestAnimationFrame(frame);
     })();
   </script>
