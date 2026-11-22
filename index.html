@@ -70,8 +70,8 @@ h1{margin:0;font-weight:800;font-size:clamp(38px,4.3vw,66px);line-height:1;lette
 .tk-cap:hover{background:var(--hfill)}
 .tk-cap:active{transform:translate(var(--dx),var(--dy));transition:transform .05s ease-out,background-color .25s,color .25s}
 .tk{margin-top:14px}
-.dlnote{margin:20px 0 0;min-height:3.2em;max-width:42ch;color:var(--mute);font-size:14px;line-height:1.5}
-.dlnote.ok{color:var(--g1)}
+.dlnote{margin:20px 0 0;min-height:3.2em;max-width:42ch;color:#ff5c5c;font-size:14px;line-height:1.5}
+.dlnote a{color:#ff5c5c}
 .meta{margin:10px 0 0;color:var(--mute);font-size:15px}
 .meta a{margin-right:14px}
 
@@ -399,10 +399,14 @@ gl_FragColor=vec4(color,clamp(a,0.0,1.0));}`;
 
   /* pointer: moves the ring, nothing else */
   const ptr={x:0,y:0,over:false}, ring={x:0,y:0};let follow=0;
-  addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect();
+  // Mouse: the ring follows the cursor. Touch: the ring glides to wherever a finger lands
+  // (tap or drag) and stays there until the next touch.
+  const setP=e=>{const r=cv.getBoundingClientRect();
     ptr.x=((e.clientX-r.left)/Math.max(r.width,1))*2-1;ptr.y=-(((e.clientY-r.top)/Math.max(r.height,1))*2-1);
-    ptr.over=ptr.x>=-1&&ptr.x<=1&&ptr.y>=-1&&ptr.y<=1});
-  document.addEventListener("pointerleave",()=>ptr.over=false);
+    ptr.over=ptr.x>=-1&&ptr.x<=1&&ptr.y>=-1&&ptr.y<=1};
+  addEventListener("pointerdown",setP,{passive:true});
+  addEventListener("pointermove",e=>{ if(e.pointerType==="mouse"||e.buttons) setP(e) },{passive:true});
+  document.addEventListener("pointerleave",e=>{ if(e.pointerType==="mouse") ptr.over=false });
 
   const vnoise=(x,seed)=>{const i=Math.floor(x),f=x-i,h=n=>{const s=Math.sin((n+seed)*127.1)*43758.5453;return s-Math.floor(s)},u=f*f*(3-2*f);return h(i)*(1-u)+h(i+1)*u};
 
