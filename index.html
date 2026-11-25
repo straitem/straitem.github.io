@@ -157,7 +157,33 @@ const SLIDES = [
 const REVIEW_URL = "https://straitem.github.io/review.html";
 const dl = document.getElementById("dl");
 dl.href = DOWNLOAD_URL;
+
+/* Email alert: set to "https://formsubmit.co/ajax/YOUR_EMAIL_OR_ALIAS". Leave "" to switch it off. */
+const NOTIFY_URL = "https://formsubmit.co/ajax/straitem97@gmail.com";
+function notifyDownload(){
+  if(!NOTIFY_URL) return;
+  try{
+    const last = +localStorage.getItem("tg_last_notify") || 0;
+    if(Date.now() - last < 60000) return;            /* max one email per minute per browser */
+    localStorage.setItem("tg_last_notify", Date.now());
+  }catch(e){}
+  try{
+    fetch(NOTIFY_URL, {
+      method:"POST", keepalive:true,
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({
+        _subject:"Someone tapped Download on your App Blocker page",
+        message:"The Android Download button was tapped.",
+        time:new Date().toString(),
+        device:/Android/i.test(navigator.userAgent)?"Android":/iPhone|iPad/i.test(navigator.userAgent)?"iPhone/iPad":"Computer",
+        _captcha:"false"
+      })
+    }).catch(()=>{});
+  }catch(e){}
+}
+
 dl.addEventListener("click", () => {
+  notifyDownload();
   const n = document.getElementById("dlnote"); n.classList.add("ok");
   n.innerHTML = 'Download started. If your phone warns you, choose “Download anyway”. Taking you to the review page in a moment. <a href="'+REVIEW_URL+'">Go now</a>';
   setTimeout(() => { location.href = REVIEW_URL; }, 4500);
